@@ -3,7 +3,7 @@
 
 Camera::Camera() {
     pos = glm::vec3(0.f, 1.f, 5.f);
-    dir = glm::vec3(0.f, 0.f, -1.f);
+    dir = glm::vec3(0.f, 0.f, 1.f);
     up = glm::vec3(0.f, 1.f, 0.f);
 
     pitch = 0.f;

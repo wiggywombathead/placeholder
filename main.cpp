@@ -91,10 +91,10 @@ void make_tetra(void) {
     };
 
     GLuint elems[] = {
-        0, 1, 2,
-        2, 3, 1,
-        1, 3, 0,
-        0, 2, 3
+        0,2,3,
+        3,2,1,
+        1,2,0,
+        0,1,3
     };
 
     /* set up array object */
@@ -189,16 +189,18 @@ void keyboard(GLFWwindow *w, int k, int sc, int action, int mods) {
 
 void init(void) {
 
+    /* OpenGL settings */
+    glEnable(GL_DEPTH_TEST | GL_MULTISAMPLE | GL_CULL_FACE);
+    glDepthFunc(GL_LESS);
+
+    /* glfw settings */
     glfwSetKeyCallback(window, keyboard);
     glfwSetCursorPosCallback(window, cursor);
 
-    glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LESS);
-
+    /* Load shaders */
     vert_source = (char *) malloc(512);
     frag_source = (char *) malloc(512);
 
-    /* Load shaders */
     parse_shader("shader.vert", vert_source);
     parse_shader("shader.frag", frag_source);
 
@@ -239,9 +241,9 @@ void init(void) {
 
 void display(void) {
 
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
     t_now = glfwGetTime();
+
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
     glUseProgram(shader_program);
 
@@ -266,7 +268,7 @@ void display(void) {
 
     /* faces * triangles per faces * floats per vertex */
     glBindVertexArray(cube_vao);
-    glDrawElements(GL_TRIANGLES, 6*2*3, GL_UNSIGNED_INT, 0);
+    // glDrawElements(GL_TRIANGLES, 6*2*3, GL_UNSIGNED_INT, 0);
     glBindVertexArray(0);
 
     glfwPollEvents();
@@ -280,6 +282,7 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
+    glfwWindowHint(GLFW_SAMPLES, 4);
     window = glfwCreateWindow(640, 480, "tinyworld", NULL, NULL);
 
     if (!window) {
