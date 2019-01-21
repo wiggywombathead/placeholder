@@ -1,7 +1,13 @@
 #include "camera.h"
+#include <glm/gtc/matrix_transform.hpp>
 
 Camera::Camera() {
-    pos = glm::vec3(0.f, 1.f, 1.f);
+    pos = glm::vec3(0.f, 1.f, 5.f);
+    dir = glm::vec3(0.f, 0.f, -1.f);
+    up = glm::vec3(0.f, 1.f, 0.f);
+
+    pitch = 0.f;
+    yaw = 0.f;
     fov = 45.f;
 }
 
@@ -9,8 +15,40 @@ void Camera::move(glm::vec3 v) {
     pos += v;
 }
 
-glm::vec3 Camera::get_pos(void) {
-    return pos;
+glm::mat4 Camera::look(void) {
+    calc_dir();
+    
+    glm::vec3 y(0.f, 1.f, 0.f);
+    glm::vec3 right = glm::normalize(glm::cross(y, dir));
+
+    up = glm::cross(dir, right);
+
+    return glm::lookAt(pos, pos + dir, up);
+}
+
+void Camera::calc_dir(void) {
+    dir = glm::vec3(
+            cos(pitch) * cos(yaw),
+            sin(pitch),
+            cos(pitch) * sin(yaw)
+    );
+    dir = glm::normalize(dir);
+}
+
+void Camera::pitch_up(float rad) {
+    pitch += rad;
+}
+
+void Camera::pitch_down(float rad) {
+    pitch -= rad;
+}
+
+void Camera::yaw_left(float amnt) {
+    yaw += amnt;
+}
+
+void Camera::yaw_right(float amnt) {
+    yaw -= amnt;
 }
 
 void Camera::fov_up(float amnt) {
@@ -21,6 +59,9 @@ void Camera::fov_down(float amnt) {
     fov -= amnt;
 }
 
-float Camera::get_fov(void) {
-    return fov;
-}
+glm::vec3 Camera::get_pos(void) { return pos; };
+glm::vec3 Camera::get_dir(void) { return dir; };
+glm::vec3 Camera::get_up(void) { return up; };
+float Camera::get_pitch(void) { return pitch; };
+float Camera::get_yaw(void) { return yaw; };
+float Camera::get_fov(void) { return fov; };

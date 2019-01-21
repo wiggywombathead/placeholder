@@ -6,5 +6,5 @@ out vec4 frag_color;
 uniform vec3 triangle_color;
 
 void main() {
-    frag_color = vec4(1-_color.rgb, 1.0);
+    frag_color = vec4(_color.rgb, 1.0);
 }

@@ -51,18 +51,12 @@ void make_cube(void) {
     };
 
     GLuint elems[] = {
-        0, 1, 2,
-        2, 3, 0,
-        0, 4, 7,
-        7, 3, 0,
-        4, 5, 6,
-        6, 7, 4,
-        1, 5, 6,
-        6, 2, 1,
-        0, 1, 5,
-        5, 4, 0,
-        2, 3, 7,
-        7, 6, 2
+        0,1,2,2,3,0,
+        4,5,6,6,7,4,
+        3,0,4,4,7,3,
+        2,1,5,5,6,2,
+        0,1,5,5,4,0,
+        3,2,6,6,7,3
     };
 
     glGenVertexArrays(1, &cube_vao);
@@ -128,16 +122,12 @@ void make_tetra(void) {
 
 void look(void) {
 
-    view = glm::lookAt(
-            camera.get_pos(),
-            glm::vec3(0.0f, 0.0f, 0.0f),
-            glm::vec3(0.0f, 0.0f, 1.0f)
-    );
+    view = camera.look();
 
     GLint uniview = glGetUniformLocation(shader_program, "View");
     glUniformMatrix4fv(uniview, 1, GL_FALSE, glm::value_ptr(view));
 
-    glm::mat4 proj = glm::perspective(
+    proj = glm::perspective(
             glm::radians(camera.get_fov()),
             640.f / 480.f,
             1.0f,
@@ -148,13 +138,25 @@ void look(void) {
     glUniformMatrix4fv(uniproj, 1, GL_FALSE, glm::value_ptr(proj));
 }
 
+double last_x, last_y;
 void cursor(GLFWwindow *w, double x, double y) {
 
+    double dx = x - last_x;
+    double dy = y - last_y;
+    last_x = x;
+    last_y = y;
+
+    float sensitivity = 0.01f;
+    dx *= sensitivity;
+    dy *= sensitivity;
+
+    camera.pitch_up(dy);
+    camera.yaw_left(dx);
 }
 
 void keyboard(GLFWwindow *w, int k, int sc, int action, int mods) {
 
-    float step = 0.2f;
+    float step = .5f;
 
     if (action == GLFW_RELEASE)
         return;
@@ -164,16 +166,16 @@ void keyboard(GLFWwindow *w, int k, int sc, int action, int mods) {
         glfwSetWindowShouldClose(w, GLFW_TRUE);
     /* CAMERA MOVEMENT */
     case GLFW_KEY_W:
-        camera.move(glm::vec3(step, 0, 0));
+        camera.move(step * camera.get_dir());
         break;
     case GLFW_KEY_S:
-        camera.move(glm::vec3(-step, 0, 0));
+        camera.move(-step * camera.get_dir());
         break;
     case GLFW_KEY_A:
-        camera.move(glm::vec3(0, 0, step));
+        camera.move(-step * glm::normalize(glm::cross(camera.get_dir(), camera.get_up())));
         break;
     case GLFW_KEY_D:
-        camera.move(glm::vec3(0, 0, -step));
+        camera.move(step * glm::normalize(glm::cross(camera.get_dir(), camera.get_up())));
         break;
     case GLFW_KEY_LEFT_BRACKET:
         camera.fov_up(1.f);
@@ -190,7 +192,7 @@ void init(void) {
     glfwSetKeyCallback(window, keyboard);
     glfwSetCursorPosCallback(window, cursor);
 
-    glEnable(GL_DEPTH_TEST | GL_CULL_FACE);
+    glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
 
     vert_source = (char *) malloc(512);
@@ -246,13 +248,11 @@ void display(void) {
     look();
 
     glm::mat4 model = glm::mat4(1.0f);
-    /*
     model = glm::rotate(
             model,
-            t_now * glm::radians(180.f),
-            glm::vec3(1.f, 0.f, 1.f)
+            15.f,
+            glm::vec3(0.f, 1.f, 0.f)
     );
-    */
 
     GLint unimodel = glGetUniformLocation(shader_program, "Model");
     glUniformMatrix4fv(unimodel, 1, GL_FALSE, glm::value_ptr(model));
@@ -261,11 +261,12 @@ void display(void) {
     glUniform3f(unicolor, sin(t_now), cos(t_now), -cos(t_now));
 
     glBindVertexArray(tetra_vao);
-    // glDrawElements(GL_TRIANGLES, 4*3, GL_UNSIGNED_INT, 0);
+    glDrawElements(GL_TRIANGLES, 4*3, GL_UNSIGNED_INT, 0);
     glBindVertexArray(0);
 
+    /* faces * triangles per faces * floats per vertex */
     glBindVertexArray(cube_vao);
-    glDrawElements(GL_LINE_STRIP, 8*3, GL_UNSIGNED_INT, 0);
+    glDrawElements(GL_TRIANGLES, 6*2*3, GL_UNSIGNED_INT, 0);
     glBindVertexArray(0);
 
     glfwPollEvents();
