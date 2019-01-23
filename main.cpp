@@ -12,6 +12,9 @@
 #include "util.h"
 #include "camera.h"
 
+#define WIN_W 800
+#define WIN_H 600
+
 GLFWwindow *window;
 bool error_check;
 
@@ -51,12 +54,12 @@ void make_cube(void) {
     };
 
     GLuint elems[] = {
-        0,1,2,2,3,0,
-        4,5,6,6,7,4,
-        3,0,4,4,7,3,
-        2,1,5,5,6,2,
         0,1,5,5,4,0,
-        3,2,6,6,7,3
+        1,2,6,6,5,1,
+        2,3,7,7,6,2,
+        3,0,4,4,7,3,
+        4,5,6,6,7,4,
+        3,2,1,1,0,3
     };
 
     glGenVertexArrays(1, &cube_vao);
@@ -139,7 +142,14 @@ void look(void) {
 }
 
 double last_x, last_y;
+bool first_mouse = true;
 void cursor(GLFWwindow *w, double x, double y) {
+
+    if (first_mouse) {
+        last_x = x;
+        last_y = y;
+        first_mouse = false;
+    }
 
     double dx = x - last_x;
     double dy = y - last_y;
@@ -158,6 +168,8 @@ void keyboard(GLFWwindow *w, int k, int sc, int action, int mods) {
 
     float step = .5f;
 
+    glm::vec3 to_move;
+
     if (action == GLFW_RELEASE)
         return;
     
@@ -172,10 +184,12 @@ void keyboard(GLFWwindow *w, int k, int sc, int action, int mods) {
         camera.move(-step * camera.get_dir());
         break;
     case GLFW_KEY_A:
-        camera.move(-step * glm::normalize(glm::cross(camera.get_dir(), camera.get_up())));
+        to_move = glm::normalize(glm::cross(camera.get_dir(), camera.get_up()));
+        camera.move(-step * to_move);
         break;
     case GLFW_KEY_D:
-        camera.move(step * glm::normalize(glm::cross(camera.get_dir(), camera.get_up())));
+        to_move = glm::normalize(glm::cross(camera.get_dir(), camera.get_up()));
+        camera.move(step * to_move);
         break;
     case GLFW_KEY_LEFT_BRACKET:
         camera.fov_up(1.f);
@@ -192,10 +206,15 @@ void init(void) {
     /* OpenGL settings */
     glEnable(GL_DEPTH_TEST | GL_MULTISAMPLE | GL_CULL_FACE);
     glDepthFunc(GL_LESS);
+    glCullFace(GL_FRONT);
+    glFrontFace(GL_CW);
 
     /* glfw settings */
     glfwSetKeyCallback(window, keyboard);
     glfwSetCursorPosCallback(window, cursor);
+
+    // mouse tends to left ???
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     /* Load shaders */
     vert_source = (char *) malloc(512);
@@ -250,11 +269,13 @@ void display(void) {
     look();
 
     glm::mat4 model = glm::mat4(1.0f);
+    /*
     model = glm::rotate(
             model,
-            15.f,
+            t_now * 1.f,
             glm::vec3(0.f, 1.f, 0.f)
     );
+    */
 
     GLint unimodel = glGetUniformLocation(shader_program, "Model");
     glUniformMatrix4fv(unimodel, 1, GL_FALSE, glm::value_ptr(model));
@@ -263,12 +284,12 @@ void display(void) {
     glUniform3f(unicolor, sin(t_now), cos(t_now), -cos(t_now));
 
     glBindVertexArray(tetra_vao);
-    glDrawElements(GL_TRIANGLES, 4*3, GL_UNSIGNED_INT, 0);
+    // glDrawElements(GL_TRIANGLES, 4*3, GL_UNSIGNED_INT, 0);
     glBindVertexArray(0);
 
     /* faces * triangles per faces * floats per vertex */
     glBindVertexArray(cube_vao);
-    // glDrawElements(GL_TRIANGLES, 6*2*3, GL_UNSIGNED_INT, 0);
+    glDrawElements(GL_TRIANGLES, 6*2*3, GL_UNSIGNED_INT, 0);
     glBindVertexArray(0);
 
     glfwPollEvents();
@@ -283,7 +304,7 @@ int main(int argc, char *argv[]) {
     }
 
     glfwWindowHint(GLFW_SAMPLES, 4);
-    window = glfwCreateWindow(640, 480, "tinyworld", NULL, NULL);
+    window = glfwCreateWindow(WIN_W, WIN_H, "tinyworld", NULL, NULL);
 
     if (!window) {
         fprintf(stderr, "Error: could not create window\n");

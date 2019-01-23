@@ -3,7 +3,7 @@
 
 Camera::Camera() {
     pos = glm::vec3(0.f, 1.f, 5.f);
-    dir = glm::vec3(0.f, 0.f, 1.f);
+    dir = glm::vec3(0.f, 0.f, 0.f);
     up = glm::vec3(0.f, 1.f, 0.f);
 
     pitch = 0.f;
@@ -37,10 +37,16 @@ void Camera::calc_dir(void) {
 
 void Camera::pitch_up(float rad) {
     pitch += rad;
+
+    if (pitch > 90.f)
+        pitch = 90.f;
 }
 
 void Camera::pitch_down(float rad) {
     pitch -= rad;
+    
+    if (pitch < -90.f)
+        pitch = -90.f;
 }
 
 void Camera::yaw_left(float amnt) {
