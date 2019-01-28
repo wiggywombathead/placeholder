@@ -3,11 +3,11 @@
 
 Camera::Camera() {
     pos = glm::vec3(0.f, 1.f, 5.f);
-    dir = glm::vec3(0.f, 0.f, 0.f);
+    dir = glm::vec3(0.f, 0.f, -1.f);
     up = glm::vec3(0.f, 1.f, 0.f);
 
     pitch = 0.f;
-    yaw = 0.f;
+    yaw = -90.f;
     fov = 45.f;
 }
 
@@ -24,6 +24,7 @@ glm::mat4 Camera::look(void) {
     up = glm::cross(dir, right);
 
     return glm::lookAt(pos, pos + dir, up);
+    // return glm::lookAt(pos, glm::vec3(0.f), y);
 }
 
 void Camera::calc_dir(void) {
@@ -35,26 +36,18 @@ void Camera::calc_dir(void) {
     dir = glm::normalize(dir);
 }
 
-void Camera::pitch_up(float rad) {
+void Camera::change_pitch(float rad) {
     pitch += rad;
 
     if (pitch > 90.f)
         pitch = 90.f;
-}
-
-void Camera::pitch_down(float rad) {
-    pitch -= rad;
     
     if (pitch < -90.f)
         pitch = -90.f;
 }
 
-void Camera::yaw_left(float amnt) {
-    yaw += amnt;
-}
-
-void Camera::yaw_right(float amnt) {
-    yaw -= amnt;
+void Camera::change_yaw(float rad) {
+    yaw += rad;
 }
 
 void Camera::fov_up(float amnt) {

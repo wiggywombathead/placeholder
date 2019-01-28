@@ -22,12 +22,10 @@ public:
     glm::vec3 get_dir(void);
     glm::vec3 get_up(void);
 
-    void pitch_up(float);
-    void pitch_down(float);
+    void change_pitch(float);
     float get_pitch(void);
 
-    void yaw_left(float);
-    void yaw_right(float);
+    void change_yaw(float);
     float get_yaw(void);
 
     void fov_up(float);

@@ -8,6 +8,7 @@
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
+#include <SOIL/SOIL.h>
 
 #include "util.h"
 #include "camera.h"
@@ -27,13 +28,8 @@ char *shaders[] = {
     vert_source, frag_source
 };
 
-GLuint tetra_vbo;
 GLuint tetra_vao;
-GLuint tetra_ebo;
-
-GLuint cube_vao;
-GLuint cube_vbo;
-GLuint cube_ebo;
+GLuint cube_vao, cube_tex;
 
 glm::mat4 view, proj;
 
@@ -42,20 +38,21 @@ float t_start, t_last, t_now;
 void make_cube(void) {
 
     float verts[] = {
-        -0.5, -0.5,  0.5, 1.0, 0.0, 0.0,
-         0.5, -0.5,  0.5, 0.0, 1.0, 0.0,
-         0.5, -0.5, -0.5, 0.0, 0.0, 1.0,
-        -0.5, -0.5, -0.5, 1.0, 1.0, 1.0,
-
-        -0.5,  0.5,  0.5, 1.0, 1.0, 0.0,
-         0.5,  0.5,  0.5, 0.0, 1.0, 1.0,
-         0.5,  0.5, -0.5, 1.0, 0.0, 1.0,
-        -0.5,  0.5, -0.5, 0.0, 0.0, 0.0,
+        // X Y Z            // R G B        // tex coords
+        -0.5, -0.5,  0.5,   1.0, 0.0, 0.0,  0.0, 0.0,   // bottom left
+         0.5, -0.5,  0.5,   0.0, 1.0, 0.0,  1.0, 0.0,   // bottom right
+         0.5, -0.5, -0.5,   0.0, 0.0, 1.0,  1.0, 1.0,   // top right
+        -0.5, -0.5, -0.5,   1.0, 1.0, 1.0,  0.0, 1.0,   // top left
+                            
+        -0.5,  0.5,  0.5,   1.0, 1.0, 0.0,  0.0, 0.0,
+         0.5,  0.5,  0.5,   0.0, 1.0, 1.0,  1.0, 0.0,
+         0.5,  0.5, -0.5,   1.0, 0.0, 1.0,  1.0, 1.0,
+        -0.5,  0.5, -0.5,   0.0, 0.0, 0.0,  0.0, 1.0,
     };
 
     GLuint elems[] = {
-        0,1,5,5,4,0,
-        1,2,6,6,5,1,
+        0,1,5,5,4,0,    // front
+        1,2,6,6,5,1,    // right
         2,3,7,7,6,2,
         3,0,4,4,7,3,
         4,5,6,6,7,4,
@@ -64,6 +61,9 @@ void make_cube(void) {
 
     glGenVertexArrays(1, &cube_vao);
     glBindVertexArray(cube_vao);
+
+    GLuint cube_vbo;
+    GLuint cube_ebo;
 
     /* copy points into GPU using buffer object */
     glGenBuffers(1, &cube_vbo);
@@ -75,13 +75,39 @@ void make_cube(void) {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, cube_ebo);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elems), elems, GL_STATIC_DRAW);
 
+    /* generate texture */
+    int width, height;
+    unsigned char *img = SOIL_load_image(
+            "planks.jpg",
+            &width,
+            &height,
+            0,
+            SOIL_LOAD_RGB
+        );
+
+
+    glGenTextures(1, &cube_tex);
+    glBindTexture(GL_TEXTURE_2D, cube_tex);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, img);
+    glGenerateMipmap(GL_TEXTURE_2D);
+
     GLint pos = glGetAttribLocation(shader_program, "position");
+    glVertexAttribPointer(pos, 3, GL_FLOAT, GL_FALSE, 8*sizeof(float), 0);
     glEnableVertexAttribArray(pos);
-    glVertexAttribPointer(pos, 3, GL_FLOAT, GL_FALSE, 6*sizeof(float), 0);
 
     GLint col = glGetAttribLocation(shader_program, "color");
+    glVertexAttribPointer(col, 3, GL_FLOAT, GL_FALSE, 8*sizeof(float), (void *) (3*sizeof(float)));
     glEnableVertexAttribArray(col);
-    glVertexAttribPointer(col, 3, GL_FLOAT, GL_FALSE, 6*sizeof(float), (void *) (3*sizeof(float)));
+
+    GLint tex = glGetAttribLocation(shader_program, "texcoord");
+    glVertexAttribPointer(tex, 2, GL_FLOAT, GL_FALSE, 8*sizeof(float), (void *) (6*sizeof(float)));
+    glEnableVertexAttribArray(tex);
 }
 
 void make_tetra(void) {
@@ -94,11 +120,14 @@ void make_tetra(void) {
     };
 
     GLuint elems[] = {
-        0,2,3,
-        3,2,1,
-        1,2,0,
-        0,1,3
+        0,1,2,
+        1,3,2,
+        3,0,2,
+        0,3,1
     };
+
+    GLuint tetra_vbo;
+    GLuint tetra_ebo;
 
     /* set up array object */
     glGenVertexArrays(1, &tetra_vao);
@@ -160,8 +189,8 @@ void cursor(GLFWwindow *w, double x, double y) {
     dx *= sensitivity;
     dy *= sensitivity;
 
-    camera.pitch_up(dy);
-    camera.yaw_left(dx);
+    camera.change_pitch(-dy);
+    camera.change_yaw(dx);
 }
 
 void keyboard(GLFWwindow *w, int k, int sc, int action, int mods) {
@@ -204,17 +233,20 @@ void keyboard(GLFWwindow *w, int k, int sc, int action, int mods) {
 void init(void) {
 
     /* OpenGL settings */
-    glEnable(GL_DEPTH_TEST | GL_MULTISAMPLE | GL_CULL_FACE);
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_MULTISAMPLE);
+    glEnable(GL_CULL_FACE);
+
     glDepthFunc(GL_LESS);
-    glCullFace(GL_FRONT);
-    glFrontFace(GL_CW);
+    glCullFace(GL_BACK);
+    glFrontFace(GL_CCW);
 
     /* glfw settings */
     glfwSetKeyCallback(window, keyboard);
     glfwSetCursorPosCallback(window, cursor);
 
     // mouse tends to left ???
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    // glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     /* Load shaders */
     vert_source = (char *) malloc(512);
@@ -250,7 +282,7 @@ void init(void) {
     view = glm::lookAt(
             camera.get_pos(),
             glm::vec3(0.0f, 0.0f, 0.0f),
-            glm::vec3(0.0f, 0.0f, 1.0f)
+            glm::vec3(0.0f, 1.0f, 0.0f)
     );
 
     /* set up objects */
@@ -269,13 +301,12 @@ void display(void) {
     look();
 
     glm::mat4 model = glm::mat4(1.0f);
-    /*
+
     model = glm::rotate(
             model,
             t_now * 1.f,
-            glm::vec3(0.f, 1.f, 0.f)
+            glm::vec3(1.f, 1.f, 0.f)
     );
-    */
 
     GLint unimodel = glGetUniformLocation(shader_program, "Model");
     glUniformMatrix4fv(unimodel, 1, GL_FALSE, glm::value_ptr(model));
@@ -288,6 +319,7 @@ void display(void) {
     glBindVertexArray(0);
 
     /* faces * triangles per faces * floats per vertex */
+    glBindTexture(GL_TEXTURE_2D, cube_tex);
     glBindVertexArray(cube_vao);
     glDrawElements(GL_TRIANGLES, 6*2*3, GL_UNSIGNED_INT, 0);
     glBindVertexArray(0);

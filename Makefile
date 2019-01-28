@@ -1,7 +1,7 @@
 CXX = g++
 CXXFLAGS = -g -std=gnu++11 
 
-LDLIBS = -lGL -lGLU -lGLEW -lglfw -lX11 -lm -lpng
+LDLIBS = -lGL -lGLU -lGLEW -lglfw -lSOIL -lX11 -lm -lpng
 LIBDIRS = -L/usr/X11R6/lib
 LDFLAGS = $(CXXFLAGS) $(LIBDIRS)
 
