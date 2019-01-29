@@ -16,6 +16,12 @@
 #define WIN_W 800
 #define WIN_H 600
 
+enum Shader {
+    VERTEX_SHADER,
+    GEOMETRY_SHADER,
+    FRAGMENT_SHADER,
+};
+
 GLFWwindow *window;
 bool error_check;
 
@@ -31,9 +37,26 @@ char *shaders[] = {
 GLuint tetra_vao;
 GLuint cube_vao, cube_tex;
 
-glm::mat4 view, proj;
+GLuint sun_vao;
+
+glm::mat4 model, view, proj;
+
+glm::vec3 sun(1.f, 1.f, 1.f);
+glm::vec3 cube_col(1.f, .5f, .31f);
 
 float t_start, t_last, t_now;
+
+/* parse and compile shader */
+GLuint create_shader(const char *name, char *source, GLenum type) {
+
+    parse_shader(name, source);
+
+    GLuint shader = glCreateShader(type);
+    glShaderSource(shader, 1, &source, NULL);
+    glCompileShader(shader);
+
+    return shader;
+}
 
 void make_cube(void) {
 
@@ -110,6 +133,13 @@ void make_cube(void) {
     glEnableVertexAttribArray(tex);
 }
 
+void draw_cube(void) {
+    glBindTexture(GL_TEXTURE_2D, cube_tex);
+    glBindVertexArray(cube_vao);
+    glDrawElements(GL_TRIANGLES, 6*2*3, GL_UNSIGNED_INT, 0);
+    glBindVertexArray(0);
+}
+
 void make_tetra(void) {
 
     float verts[] = {
@@ -150,24 +180,6 @@ void make_tetra(void) {
     GLint col = glGetAttribLocation(shader_program, "color");
     glEnableVertexAttribArray(col);
     glVertexAttribPointer(col, 3, GL_FLOAT, GL_FALSE, 6*sizeof(float), (void *) (3*sizeof(float)));
-}
-
-void look(void) {
-
-    view = camera.look();
-
-    GLint uniview = glGetUniformLocation(shader_program, "View");
-    glUniformMatrix4fv(uniview, 1, GL_FALSE, glm::value_ptr(view));
-
-    proj = glm::perspective(
-            glm::radians(camera.get_fov()),
-            640.f / 480.f,
-            1.0f,
-            10.0f
-    );
-
-    GLint uniproj = glGetUniformLocation(shader_program, "Proj");
-    glUniformMatrix4fv(uniproj, 1, GL_FALSE, glm::value_ptr(proj));
 }
 
 double last_x, last_y;
@@ -230,6 +242,71 @@ void keyboard(GLFWwindow *w, int k, int sc, int action, int mods) {
 
 }
 
+void display(void) {
+
+    t_now = glfwGetTime();
+
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    
+    glUseProgram(shader_program);
+
+    view = camera.look();
+
+    proj = glm::perspective(
+            glm::radians(camera.get_fov()),
+            (float) WIN_W / WIN_H,
+            1.0f,
+            50.0f
+    );
+
+    GLint uniproj = glGetUniformLocation(shader_program, "Proj");
+    glUniformMatrix4fv(uniproj, 1, GL_FALSE, glm::value_ptr(proj));
+
+    GLint uniview = glGetUniformLocation(shader_program, "View");
+    glUniformMatrix4fv(uniview, 1, GL_FALSE, glm::value_ptr(view));
+
+    glm::vec3 positions[] = {
+        glm::vec3(3.f, 0.f, -4.f),
+        glm::vec3(-3.f, 1.f, 1.f),
+    };
+
+    for (size_t i = 0; i < 2; i++) {
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, positions[i]);
+        model = glm::rotate(
+                model,
+                t_now * 1.f,
+                glm::vec3(1.f, 1.f, 0.f)
+        );
+
+        GLint unimodel = glGetUniformLocation(shader_program, "Model");
+        glUniformMatrix4fv(unimodel, 1, GL_FALSE, glm::value_ptr(model));
+
+        draw_cube();
+    }
+
+    model = glm::mat4(1.f);
+    GLint unimodel = glGetUniformLocation(shader_program, "Model");
+    glUniformMatrix4fv(unimodel, 1, GL_FALSE, glm::value_ptr(model));
+
+    /* faces * triangles per faces * floats per vertex */
+    glBindVertexArray(tetra_vao);
+    glDrawElements(GL_TRIANGLES, 4*3, GL_UNSIGNED_INT, 0);
+    glBindVertexArray(0);
+
+    GLint obj_color = glGetUniformLocation(shader_program, "obj_color");
+    glUniform3f(obj_color, cube_col.x, cube_col.y, cube_col.z);
+
+    GLint light_color = glGetUniformLocation(shader_program, "light_color");
+    glUniform3f(light_color, sun.x, sun.y, sun.z);
+
+    GLint unicolor = glGetUniformLocation(shader_program, "triangle_color");
+    glUniform3f(unicolor, sin(t_now), cos(t_now), -cos(t_now));
+
+    glfwPollEvents();
+    glfwSwapBuffers(window);
+}
+
 void init(void) {
 
     /* OpenGL settings */
@@ -252,17 +329,9 @@ void init(void) {
     vert_source = (char *) malloc(512);
     frag_source = (char *) malloc(512);
 
-    parse_shader("shader.vert", vert_source);
-    parse_shader("shader.frag", frag_source);
-
     /* Compile the shaders */
-    vert_shader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vert_shader, 1, &vert_source, NULL);
-    glCompileShader(vert_shader);
-
-    frag_shader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(frag_shader, 1, &frag_source, NULL);
-    glCompileShader(frag_shader);
+    vert_shader = create_shader("shader.vert", vert_source, GL_VERTEX_SHADER);
+    frag_shader = create_shader("shader.frag", frag_source, GL_FRAGMENT_SHADER);
 
     /* Check shader compilation */
     if (!error_check) {
@@ -279,53 +348,9 @@ void init(void) {
     free(vert_source);
     free(frag_source);
 
-    view = glm::lookAt(
-            camera.get_pos(),
-            glm::vec3(0.0f, 0.0f, 0.0f),
-            glm::vec3(0.0f, 1.0f, 0.0f)
-    );
-
     /* set up objects */
     make_tetra();
     make_cube();
-}
-
-void display(void) {
-
-    t_now = glfwGetTime();
-
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    
-    glUseProgram(shader_program);
-
-    look();
-
-    glm::mat4 model = glm::mat4(1.0f);
-
-    model = glm::rotate(
-            model,
-            t_now * 1.f,
-            glm::vec3(1.f, 1.f, 0.f)
-    );
-
-    GLint unimodel = glGetUniformLocation(shader_program, "Model");
-    glUniformMatrix4fv(unimodel, 1, GL_FALSE, glm::value_ptr(model));
-
-    GLint unicolor = glGetUniformLocation(shader_program, "triangle_color");
-    glUniform3f(unicolor, sin(t_now), cos(t_now), -cos(t_now));
-
-    glBindVertexArray(tetra_vao);
-    // glDrawElements(GL_TRIANGLES, 4*3, GL_UNSIGNED_INT, 0);
-    glBindVertexArray(0);
-
-    /* faces * triangles per faces * floats per vertex */
-    glBindTexture(GL_TEXTURE_2D, cube_tex);
-    glBindVertexArray(cube_vao);
-    glDrawElements(GL_TRIANGLES, 6*2*3, GL_UNSIGNED_INT, 0);
-    glBindVertexArray(0);
-
-    glfwPollEvents();
-    glfwSwapBuffers(window);
 }
 
 int main(int argc, char *argv[]) {
@@ -335,7 +360,11 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_SAMPLES, 4);
+
     window = glfwCreateWindow(WIN_W, WIN_H, "tinyworld", NULL, NULL);
 
     if (!window) {
@@ -354,10 +383,10 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    const GLubyte *renderer = glGetString(GL_RENDERER);
     const GLubyte *version = glGetString(GL_VERSION);
-    printf("Renderer: %s\n", renderer);
+    const GLubyte *renderer = glGetString(GL_RENDERER);
     printf("OpenGL version supported: %s\n", version);
+    printf("Renderer: %s\n", renderer);
 
     init();
 
