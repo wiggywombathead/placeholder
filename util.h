@@ -1,31 +1,12 @@
 #ifndef _UTIL_H
 #define _UTIL_H
 
-#include <stdio.h>
 #include <GL/glew.h>
 
-void shader_status(GLuint shader) {
-    GLint status;
-    glGetShaderiv(shader, GL_COMPILE_STATUS, &status);
-
-    char buf[512];
-    glGetShaderInfoLog(shader, 512, NULL, buf);
-
-    printf("%s\n", buf);
-}
-
-int parse_shader(const char *fname, char *buf) {
-
-    FILE *fp = fopen(fname, "r");
-
-    if (fp == NULL)
-        return -1;
-
-    fread(buf, sizeof(char), 512, fp);
-    fclose(fp);
-
-    return 1;
-}
+int parse_shader(const char *fname, char *buf);
+GLuint create_shader(const char *name, char *source, GLenum type);
+GLuint create_program(const char *vert, const char *frag, const char *geom = nullptr);
+void print_shader_status(GLuint shader);
 
 /*
 unsigned long getFileLength(std::ifstream& file) {

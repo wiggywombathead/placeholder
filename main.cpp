@@ -16,19 +16,15 @@
 #define WIN_W 800
 #define WIN_H 600
 
-enum Shader {
-    VERTEX_SHADER,
-    GEOMETRY_SHADER,
-    FRAGMENT_SHADER,
-};
-
 GLFWwindow *window;
 bool error_check;
 
 /* camera */
 Camera camera;
 
-GLuint vert_shader, frag_shader, shader_program;
+GLuint vert_shader, frag_shader, geom_shader;
+GLuint lighting_shader, lamp_shader;
+
 char *vert_source, *frag_source;
 char *shaders[] = {
     vert_source, frag_source
@@ -36,29 +32,64 @@ char *shaders[] = {
 
 GLuint tetra_vao;
 GLuint cube_vao, cube_tex;
-
-GLuint sun_vao;
+GLuint lamp_vao;
 
 glm::mat4 model, view, proj;
 
 glm::vec3 sun(1.f, 1.f, 1.f);
-glm::vec3 cube_col(1.f, .5f, .31f);
+glm::vec3 coral(1.f, .5f, .31f);
 
 float t_start, t_last, t_now;
 
-/* parse and compile shader */
-GLuint create_shader(const char *name, char *source, GLenum type) {
+GLuint make_tetra(void) {
 
-    parse_shader(name, source);
+    GLuint vao;
 
-    GLuint shader = glCreateShader(type);
-    glShaderSource(shader, 1, &source, NULL);
-    glCompileShader(shader);
+    float verts[] = {
+         1.0,  0.0, -1/sqrt(2), 1.0, 0.0, 0.0,
+        -1.0,  0.0, -1/sqrt(2), 0.0, 1.0, 0.0,
+         0.0,  1.0,  1/sqrt(2), 0.0, 0.0, 1.0,
+         0.0, -1.0,  1/sqrt(2), 0.0, 1.0, 1.0
+    };
 
-    return shader;
+    GLuint elems[] = {
+        0,1,2,
+        1,3,2,
+        3,0,2,
+        0,3,1
+    };
+
+    GLuint tetra_vbo;
+    GLuint tetra_ebo;
+
+    /* set up array object */
+    glGenVertexArrays(1, &vao);
+    glBindVertexArray(vao);
+
+    /* copy points into GPU using buffer object */
+    glGenBuffers(1, &tetra_vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, tetra_vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(verts), verts, GL_STATIC_DRAW);
+
+    /* set up element buffer */
+    glGenBuffers(1, &tetra_ebo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, tetra_ebo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elems), elems, GL_STATIC_DRAW);
+
+    GLint pos = glGetAttribLocation(lighting_shader, "position");
+    glEnableVertexAttribArray(pos);
+    glVertexAttribPointer(pos, 3, GL_FLOAT, GL_FALSE, 6*sizeof(float), 0);
+
+    GLint col = glGetAttribLocation(lighting_shader, "color");
+    glEnableVertexAttribArray(col);
+    glVertexAttribPointer(col, 3, GL_FLOAT, GL_FALSE, 6*sizeof(float), (void *) (3*sizeof(float)));
+
+    return vao;
 }
 
-void make_cube(void) {
+GLuint make_cube(void) {
+
+    GLuint vao;
 
     float verts[] = {
         // X Y Z            // R G B        // tex coords
@@ -82,8 +113,8 @@ void make_cube(void) {
         3,2,1,1,0,3
     };
 
-    glGenVertexArrays(1, &cube_vao);
-    glBindVertexArray(cube_vao);
+    glGenVertexArrays(1, &vao);
+    glBindVertexArray(vao);
 
     GLuint cube_vbo;
     GLuint cube_ebo;
@@ -120,66 +151,35 @@ void make_cube(void) {
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, img);
     glGenerateMipmap(GL_TEXTURE_2D);
 
-    GLint pos = glGetAttribLocation(shader_program, "position");
+    GLint pos = glGetAttribLocation(lighting_shader, "position");
     glVertexAttribPointer(pos, 3, GL_FLOAT, GL_FALSE, 8*sizeof(float), 0);
     glEnableVertexAttribArray(pos);
 
-    GLint col = glGetAttribLocation(shader_program, "color");
+    GLint col = glGetAttribLocation(lighting_shader, "color");
     glVertexAttribPointer(col, 3, GL_FLOAT, GL_FALSE, 8*sizeof(float), (void *) (3*sizeof(float)));
     glEnableVertexAttribArray(col);
 
-    GLint tex = glGetAttribLocation(shader_program, "texcoord");
+    GLint tex = glGetAttribLocation(lighting_shader, "texcoord");
     glVertexAttribPointer(tex, 2, GL_FLOAT, GL_FALSE, 8*sizeof(float), (void *) (6*sizeof(float)));
     glEnableVertexAttribArray(tex);
+
+    return vao;
 }
 
 void draw_cube(void) {
-    glBindTexture(GL_TEXTURE_2D, cube_tex);
+    // glBindTexture(GL_TEXTURE_2D, cube_tex);
     glBindVertexArray(cube_vao);
     glDrawElements(GL_TRIANGLES, 6*2*3, GL_UNSIGNED_INT, 0);
     glBindVertexArray(0);
 }
 
-void make_tetra(void) {
-
-    float verts[] = {
-         1.0,  0.0, -1/sqrt(2), 1.0, 0.0, 0.0,
-        -1.0,  0.0, -1/sqrt(2), 0.0, 1.0, 0.0,
-         0.0,  1.0,  1/sqrt(2), 0.0, 0.0, 1.0,
-         0.0, -1.0,  1/sqrt(2), 0.0, 1.0, 1.0
-    };
-
-    GLuint elems[] = {
-        0,1,2,
-        1,3,2,
-        3,0,2,
-        0,3,1
-    };
-
-    GLuint tetra_vbo;
-    GLuint tetra_ebo;
-
-    /* set up array object */
-    glGenVertexArrays(1, &tetra_vao);
+void draw_tetra(void) {
     glBindVertexArray(tetra_vao);
 
-    /* copy points into GPU using buffer object */
-    glGenBuffers(1, &tetra_vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, tetra_vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(verts), verts, GL_STATIC_DRAW);
+    /* faces * triangles per faces * floats per vertex */
+    glDrawElements(GL_TRIANGLES, 6*2*3, GL_UNSIGNED_INT, 0);
 
-    /* set up element buffer */
-    glGenBuffers(1, &tetra_ebo);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, tetra_ebo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elems), elems, GL_STATIC_DRAW);
-
-    GLint pos = glGetAttribLocation(shader_program, "position");
-    glEnableVertexAttribArray(pos);
-    glVertexAttribPointer(pos, 3, GL_FLOAT, GL_FALSE, 6*sizeof(float), 0);
-
-    GLint col = glGetAttribLocation(shader_program, "color");
-    glEnableVertexAttribArray(col);
-    glVertexAttribPointer(col, 3, GL_FLOAT, GL_FALSE, 6*sizeof(float), (void *) (3*sizeof(float)));
+    glBindVertexArray(0);
 }
 
 double last_x, last_y;
@@ -242,13 +242,9 @@ void keyboard(GLFWwindow *w, int k, int sc, int action, int mods) {
 
 }
 
-void display(void) {
+void update(void) {
 
     t_now = glfwGetTime();
-
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    
-    glUseProgram(shader_program);
 
     view = camera.look();
 
@@ -259,52 +255,45 @@ void display(void) {
             50.0f
     );
 
-    GLint uniproj = glGetUniformLocation(shader_program, "Proj");
-    glUniformMatrix4fv(uniproj, 1, GL_FALSE, glm::value_ptr(proj));
-
-    GLint uniview = glGetUniformLocation(shader_program, "View");
+    GLint uniview = glGetUniformLocation(lighting_shader, "View");
     glUniformMatrix4fv(uniview, 1, GL_FALSE, glm::value_ptr(view));
 
-    glm::vec3 positions[] = {
-        glm::vec3(3.f, 0.f, -4.f),
-        glm::vec3(-3.f, 1.f, 1.f),
-    };
+    GLint uniproj = glGetUniformLocation(lighting_shader, "Proj");
+    glUniformMatrix4fv(uniproj, 1, GL_FALSE, glm::value_ptr(proj));
 
-    for (size_t i = 0; i < 2; i++) {
-        model = glm::mat4(1.0f);
-        model = glm::translate(model, positions[i]);
-        model = glm::rotate(
-                model,
-                t_now * 1.f,
-                glm::vec3(1.f, 1.f, 0.f)
-        );
-
-        GLint unimodel = glGetUniformLocation(shader_program, "Model");
-        glUniformMatrix4fv(unimodel, 1, GL_FALSE, glm::value_ptr(model));
-
-        draw_cube();
-    }
-
-    model = glm::mat4(1.f);
-    GLint unimodel = glGetUniformLocation(shader_program, "Model");
+    GLint unimodel = glGetUniformLocation(lighting_shader, "Model");
     glUniformMatrix4fv(unimodel, 1, GL_FALSE, glm::value_ptr(model));
 
-    /* faces * triangles per faces * floats per vertex */
-    glBindVertexArray(tetra_vao);
-    glDrawElements(GL_TRIANGLES, 4*3, GL_UNSIGNED_INT, 0);
-    glBindVertexArray(0);
+}
 
-    GLint obj_color = glGetUniformLocation(shader_program, "obj_color");
-    glUniform3f(obj_color, cube_col.x, cube_col.y, cube_col.z);
+void display(void) {
 
-    GLint light_color = glGetUniformLocation(shader_program, "light_color");
-    glUniform3f(light_color, sun.x, sun.y, sun.z);
+    GLint unimodel;
 
-    GLint unicolor = glGetUniformLocation(shader_program, "triangle_color");
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    
+    glUseProgram(lighting_shader);
+
+    model = glm::mat4(1.f);
+    model = glm::rotate(
+            model,
+            t_now + 1.f,
+            glm::vec3(1.f, 0.f, 0.f)
+    );
+
+    unimodel = glGetUniformLocation(lighting_shader, "Model");
+    glUniformMatrix4fv(unimodel, 1, GL_FALSE, glm::value_ptr(model));
+
+    draw_cube();
+
+    model = glm::mat4(1.f);
+    unimodel = glGetUniformLocation(lighting_shader, "Model");
+    glUniformMatrix4fv(unimodel, 1, GL_FALSE, glm::value_ptr(model));
+
+    draw_tetra();
+
+    GLint unicolor = glGetUniformLocation(lighting_shader, "triangle_color");
     glUniform3f(unicolor, sin(t_now), cos(t_now), -cos(t_now));
-
-    glfwPollEvents();
-    glfwSwapBuffers(window);
 }
 
 void init(void) {
@@ -326,31 +315,12 @@ void init(void) {
     // glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     /* Load shaders */
-    vert_source = (char *) malloc(512);
-    frag_source = (char *) malloc(512);
-
-    /* Compile the shaders */
-    vert_shader = create_shader("shader.vert", vert_source, GL_VERTEX_SHADER);
-    frag_shader = create_shader("shader.frag", frag_source, GL_FRAGMENT_SHADER);
-
-    /* Check shader compilation */
-    if (!error_check) {
-        shader_status(vert_shader);
-        shader_status(frag_shader);
-    }
-
-    /* Combine vertex and frag shader into a program */
-    shader_program = glCreateProgram();
-    glAttachShader(shader_program, vert_shader);
-    glAttachShader(shader_program, frag_shader);
-    glLinkProgram(shader_program);
-
-    free(vert_source);
-    free(frag_source);
+    lighting_shader = create_program("lighting.vert", "lighting.frag");
 
     /* set up objects */
-    make_tetra();
-    make_cube();
+    tetra_vao = make_tetra();
+    cube_vao = make_cube();
+    lamp_vao = make_cube();
 }
 
 int main(int argc, char *argv[]) {
@@ -393,7 +363,11 @@ int main(int argc, char *argv[]) {
     /* main shit */
     while (!glfwWindowShouldClose(window)) {
 
+        update();
         display();
+
+        glfwPollEvents();
+        glfwSwapBuffers(window);
 
     }
 
