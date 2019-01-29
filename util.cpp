@@ -41,6 +41,8 @@ GLuint create_program(const char *vert, const char *frag, const char *geom) {
     bzero(source, 512);
     GLuint frag_shader = create_shader(frag, source, GL_FRAGMENT_SHADER);
 
+    free(source);
+
     program = glCreateProgram();
     glAttachShader(program, vert_shader);
     glAttachShader(program, frag_shader);

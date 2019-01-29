@@ -25,11 +25,6 @@ Camera camera;
 GLuint vert_shader, frag_shader, geom_shader;
 GLuint lighting_shader, lamp_shader;
 
-char *vert_source, *frag_source;
-char *shaders[] = {
-    vert_source, frag_source
-};
-
 GLuint tetra_vao;
 GLuint cube_vao, cube_tex;
 GLuint lamp_vao;
@@ -270,6 +265,7 @@ void display(void) {
 
     GLint unimodel;
 
+    glClearColor(1.f, 1.f, 1.f, 1.f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
     glUseProgram(lighting_shader);
@@ -299,11 +295,11 @@ void display(void) {
 void init(void) {
 
     /* OpenGL settings */
-    glEnable(GL_DEPTH_TEST);
     glEnable(GL_MULTISAMPLE);
-    glEnable(GL_CULL_FACE);
-
+    glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
+
+    glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
     glFrontFace(GL_CCW);
 
@@ -315,12 +311,11 @@ void init(void) {
     // glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     /* Load shaders */
-    lighting_shader = create_program("lighting.vert", "lighting.frag");
+    lighting_shader = create_program("shader.vert", "shader.frag");
 
     /* set up objects */
     tetra_vao = make_tetra();
     cube_vao = make_cube();
-    lamp_vao = make_cube();
 }
 
 int main(int argc, char *argv[]) {
