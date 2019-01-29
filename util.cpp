@@ -27,6 +27,7 @@ GLuint create_shader(const char *name, char *source, GLenum type) {
     glShaderSource(shader, 1, &source, NULL);
     glCompileShader(shader);
 
+    printf("Compiling %s - ", name);
     print_shader_status(shader);
 
     return shader;

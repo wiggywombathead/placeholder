@@ -22,12 +22,12 @@ bool error_check;
 /* camera */
 Camera camera;
 
-GLuint vert_shader, frag_shader, geom_shader;
+/* shader programs */
 GLuint lighting_shader, lamp_shader;
 
+/* drawable objects */
 GLuint tetra_vao;
 GLuint cube_vao, cube_tex;
-GLuint lamp_vao;
 
 glm::mat4 model, view, proj;
 
@@ -71,11 +71,11 @@ GLuint make_tetra(void) {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, tetra_ebo);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elems), elems, GL_STATIC_DRAW);
 
-    GLint pos = glGetAttribLocation(lighting_shader, "position");
+    GLint pos = glGetAttribLocation(lamp_shader, "position");
     glEnableVertexAttribArray(pos);
     glVertexAttribPointer(pos, 3, GL_FLOAT, GL_FALSE, 6*sizeof(float), 0);
 
-    GLint col = glGetAttribLocation(lighting_shader, "color");
+    GLint col = glGetAttribLocation(lamp_shader, "color");
     glEnableVertexAttribArray(col);
     glVertexAttribPointer(col, 3, GL_FLOAT, GL_FALSE, 6*sizeof(float), (void *) (3*sizeof(float)));
 
@@ -145,6 +145,9 @@ GLuint make_cube(void) {
 
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, img);
     glGenerateMipmap(GL_TEXTURE_2D);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8*sizeof(float), 0);
+    glEnableVertexAttribArray(0);
 
     GLint pos = glGetAttribLocation(lighting_shader, "position");
     glVertexAttribPointer(pos, 3, GL_FLOAT, GL_FALSE, 8*sizeof(float), 0);
@@ -241,55 +244,64 @@ void update(void) {
 
     t_now = glfwGetTime();
 
-    view = camera.look();
-
-    proj = glm::perspective(
-            glm::radians(camera.get_fov()),
-            (float) WIN_W / WIN_H,
-            1.0f,
-            50.0f
-    );
-
-    GLint uniview = glGetUniformLocation(lighting_shader, "View");
-    glUniformMatrix4fv(uniview, 1, GL_FALSE, glm::value_ptr(view));
-
-    GLint uniproj = glGetUniformLocation(lighting_shader, "Proj");
-    glUniformMatrix4fv(uniproj, 1, GL_FALSE, glm::value_ptr(proj));
-
-    GLint unimodel = glGetUniformLocation(lighting_shader, "Model");
-    glUniformMatrix4fv(unimodel, 1, GL_FALSE, glm::value_ptr(model));
-
 }
 
 void display(void) {
 
     GLint unimodel;
 
-    glClearColor(1.f, 1.f, 1.f, 1.f);
+    glClearColor(0.f, 0.f, 0.f, 0.f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
     glUseProgram(lighting_shader);
 
-    model = glm::mat4(1.f);
-    model = glm::rotate(
-            model,
-            t_now + 1.f,
-            glm::vec3(1.f, 0.f, 0.f)
-    );
+    GLint obj_color = glGetUniformLocation(lighting_shader, "obj_color");
+    glUniform3f(obj_color, coral.x, coral.y, coral.z);
+    GLint light_color = glGetUniformLocation(lighting_shader, "light_color");
+    glUniform3f(light_color, sun.x, sun.y, sun.z);
 
+    /* Projection */
+    proj = glm::perspective(
+            glm::radians(camera.get_fov()),
+            (float) WIN_W / WIN_H,
+            1.0f,
+            50.0f
+    );
+    GLint uniproj = glGetUniformLocation(lighting_shader, "Proj");
+    glUniformMatrix4fv(uniproj, 1, GL_FALSE, glm::value_ptr(proj));
+
+    /* View */
+    view = camera.look();
+    GLint uniview = glGetUniformLocation(lighting_shader, "View");
+    glUniformMatrix4fv(uniview, 1, GL_FALSE, glm::value_ptr(view));
+
+    /* Model */
+    model = glm::mat4(1.f);
     unimodel = glGetUniformLocation(lighting_shader, "Model");
     glUniformMatrix4fv(unimodel, 1, GL_FALSE, glm::value_ptr(model));
 
     draw_cube();
 
+    glUseProgram(lamp_shader);
+
+    uniproj = glGetUniformLocation(lamp_shader, "Proj");
+    glUniformMatrix4fv(uniproj, 1, GL_FALSE, glm::value_ptr(proj));
+
+    /* View */
+    view = camera.look();
+    uniview = glGetUniformLocation(lamp_shader, "View");
+    glUniformMatrix4fv(uniview, 1, GL_FALSE, glm::value_ptr(view));
+
+    /* Model */
     model = glm::mat4(1.f);
-    unimodel = glGetUniformLocation(lighting_shader, "Model");
+    model = glm::translate(model, glm::vec3(1.f, 2.f, -4.f));
+    model = glm::scale(model, glm::vec3(0.5f));
+    model = glm::rotate(model, 2 * t_now, glm::vec3(0, 1, 0));
+
+    unimodel = glGetUniformLocation(lamp_shader, "Model");
     glUniformMatrix4fv(unimodel, 1, GL_FALSE, glm::value_ptr(model));
 
     draw_tetra();
-
-    GLint unicolor = glGetUniformLocation(lighting_shader, "triangle_color");
-    glUniform3f(unicolor, sin(t_now), cos(t_now), -cos(t_now));
 }
 
 void init(void) {
@@ -311,7 +323,8 @@ void init(void) {
     // glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     /* Load shaders */
-    lighting_shader = create_program("shader.vert", "shader.frag");
+    lighting_shader = create_program("shader.vert", "lighting.frag");
+    lamp_shader = create_program("shader.vert", "lamp.frag");
 
     /* set up objects */
     tetra_vao = make_tetra();
