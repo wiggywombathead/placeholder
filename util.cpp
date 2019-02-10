@@ -2,7 +2,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <strings.h>
+#include <string.h>
 
 /* read shader into buffer */
 int parse_shader(const char *fname, char *buf) {
@@ -12,7 +12,11 @@ int parse_shader(const char *fname, char *buf) {
     if (fp == NULL)
         return -1;
 
-    fread(buf, sizeof(char), 512, fp);
+    fseek(fp, 0, SEEK_END);
+    size_t size = ftell(fp);
+    rewind(fp);
+
+    fread(buf, sizeof(char), size, fp);
     fclose(fp);
 
     return 1;
@@ -36,13 +40,12 @@ GLuint create_shader(const char *name, char *source, GLenum type) {
 /* create shader program */
 GLuint create_program(const char *vert, const char *frag, const char *geom) {
     GLuint program;
-    char *source = (char *) malloc(512);
+    char source[512];
 
     GLuint vert_shader = create_shader(vert, source, GL_VERTEX_SHADER);
     bzero(source, 512);
     GLuint frag_shader = create_shader(frag, source, GL_FRAGMENT_SHADER);
-
-    free(source);
+    bzero(source, 512);
 
     program = glCreateProgram();
     glAttachShader(program, vert_shader);
