@@ -1,6 +1,8 @@
 #ifndef _UTIL_H
 #define _UTIL_H
 
+#define SHADER_SIZE 1024
+
 #include <GL/glew.h>
 
 int parse_shader(const char *fname, char *buf);

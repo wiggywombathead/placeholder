@@ -20,6 +20,34 @@
 GLFWwindow *window;
 bool error_check;
 
+struct material_t {
+    glm::vec3 ambient;
+    glm::vec3 diffuse;
+    glm::vec3 specular;
+    float shininess;
+};
+
+material_t bronze = {
+    {0.2125, 0.1275, 0.054},
+    {0.714, 0.4284, 0.18144},
+    {0.393548, 0.271906, 0.166721},
+    0.2
+};
+
+material_t copper = {
+    {0.19125, 0.0735, 0.0225},
+    {0.7038, 0.27048, 0.0828},
+    {0.256777, 0.137622, 0.086014},
+    0.1
+};
+
+material_t pearl = {
+    {0.25, 0.20725,	0.20725},
+    {1, 0.829, 0.829},
+    {0.296648, 0.296648, 0.296648},
+    0.088
+};
+
 /* camera */
 Camera camera;
 
@@ -92,6 +120,52 @@ GLuint make_cube(void) {
     GLuint vao;
 
     float verts[] = {
+        // X    Y     Z       NORMAL
+        -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+         0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+         0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+         0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+        -0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+        -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+
+        -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
+         0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
+         0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
+         0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
+        -0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
+        -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
+
+        -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
+        -0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
+        -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
+        -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
+        -0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
+        -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
+
+         0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
+         0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
+         0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
+         0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
+         0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
+         0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
+
+        -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
+         0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
+         0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
+         0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
+        -0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
+        -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
+
+        -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
+         0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
+         0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
+         0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
+        -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
+        -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f
+    };
+
+    /*
+    float verts[] = {
         // X Y Z            // R G B        // tex coords
         -0.5, -0.5,  0.5,   1.0, 0.0, 0.0,  0.0, 0.0,   // bottom left
          0.5, -0.5,  0.5,   0.0, 1.0, 0.0,  1.0, 0.0,   // bottom right
@@ -103,6 +177,7 @@ GLuint make_cube(void) {
          0.5,  0.5, -0.5,   1.0, 0.0, 1.0,  1.0, 1.0,
         -0.5,  0.5, -0.5,   0.0, 0.0, 0.0,  0.0, 1.0,
     };
+    */
 
     GLuint elems[] = {
         0,1,5,5,4,0,    // front
@@ -137,8 +212,7 @@ GLuint make_cube(void) {
             &height,
             0,
             SOIL_LOAD_RGB
-        );
-
+    );
 
     glGenTextures(1, &cube_tex);
     glBindTexture(GL_TEXTURE_2D, cube_tex);
@@ -152,11 +226,11 @@ GLuint make_cube(void) {
     glGenerateMipmap(GL_TEXTURE_2D);
 
     /* position */
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8*sizeof(float), 0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6*sizeof(float), 0);
     glEnableVertexAttribArray(0);
 
-    /* color */
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8*sizeof(float), (void *) (3*sizeof(float)));
+    /* normal */
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6*sizeof(float), (void *) (3*sizeof(float)));
     glEnableVertexAttribArray(1);
 
     return vao;
@@ -165,7 +239,8 @@ GLuint make_cube(void) {
 void draw_cube(void) {
     // glBindTexture(GL_TEXTURE_2D, cube_tex);
     glBindVertexArray(cube_vao);
-    glDrawElements(GL_TRIANGLES, 6*2*3, GL_UNSIGNED_INT, 0);
+    // glDrawElements(GL_TRIANGLES, 6*2*3, GL_UNSIGNED_INT, 0);
+    glDrawArrays(GL_TRIANGLES, 0, 6*2*3);
     glBindVertexArray(0);
 }
 
@@ -237,9 +312,19 @@ void keyboard(GLFWwindow *w, int k, int sc, int action, int mods) {
 
 }
 
+glm::vec3 light_pos;
+glm::vec3 light_col;
 void update(void) {
 
     t_now = glfwGetTime();
+
+    float x = 2*cos(t_now);
+    float z = 2*sin(t_now);
+    light_pos = glm::vec3(x, 0, z);
+
+    light_col.x = 11 * sin(t_now);
+    light_col.y = 17 * cos(t_now);
+    light_col.z = 29 * sin(-t_now);
 
 }
 
@@ -252,31 +337,43 @@ void display(void) {
     
     lighting_shader.use();
 
-    lighting_shader.set_vec3("obj_color", coral);
-    lighting_shader.set_vec3("light_color", sun);
+    lighting_shader.set_vec3("view_pos", camera.get_pos());
+    lighting_shader.set_vec3("light_pos", light_pos);
 
-    /* Projection */
+    glm::vec3 diffuse_col = light_col * glm::vec3(.1);
+    glm::vec3 ambient_col = diffuse_col * glm::vec3(.4);
+
+    lighting_shader.set_vec3("light.ambient", ambient_col);
+    lighting_shader.set_vec3("light.diffuse", diffuse_col);
+    lighting_shader.set_vec3("light.specular", {1, 1, 1});
+
+    lighting_shader.set_vec3("material.ambient", {1., .5, .31});
+    lighting_shader.set_vec3("material.diffuse", {1., .5, .31});
+    lighting_shader.set_vec3("material.specular", {.5, .5, .5});
+    lighting_shader.set_float("material.shininess", 32);
+
     proj = glm::perspective(glm::radians(camera.get_fov()), (float) WIN_W / WIN_H, 1.0f, 50.0f);
-    
-    /* Projection */
     lighting_shader.set_mat4("Proj", proj);
 
-    /* View */
     view = camera.look();
     lighting_shader.set_mat4("View", view);
 
-    /* Model */
     model = glm::mat4(1.f);
+    model = glm::rotate(model, t_now, glm::vec3(1,0,0));
     lighting_shader.set_mat4("Model", model);
 
     draw_cube();
 
     lamp_shader.use();
 
+    lamp_shader.set_vec3("light_color", light_col);
+
     lamp_shader.set_mat4("Proj", proj);
     lamp_shader.set_mat4("View", view);
+
     model = glm::mat4(1.f);
-    model = glm::translate(model, glm::vec3(1,1,0));
+    model = glm::translate(model, light_pos);
+    model = glm::scale(model, glm::vec3(.1f));
     lamp_shader.set_mat4("Model", model);
 
     draw_cube();
@@ -286,13 +383,15 @@ void display(void) {
 void init(void) {
 
     /* OpenGL settings */
+    glEnable(GL_PROGRAM_POINT_SIZE);
     glEnable(GL_MULTISAMPLE);
+
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
 
-    glEnable(GL_CULL_FACE);
-    glCullFace(GL_BACK);
-    glFrontFace(GL_CCW);
+    // glEnable(GL_CULL_FACE);
+    // glCullFace(GL_BACK);
+    // glFrontFace(GL_CCW);
 
     /* glfw settings */
     glfwSetKeyCallback(window, keyboard);
@@ -340,10 +439,13 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    const GLubyte *version = glGetString(GL_VERSION);
-    const GLubyte *renderer = glGetString(GL_RENDERER);
-    printf("OpenGL version supported: %s\n", version);
-    printf("Renderer: %s\n", renderer);
+    printf("OpenGL version: %s\n"
+            "Renderer: %s\n"
+            "GLSL version: %s\n",
+            glGetString(GL_VERSION),
+            glGetString(GL_RENDERER),
+            glGetString(GL_SHADING_LANGUAGE_VERSION)
+    );
 
     init();
 

@@ -15,6 +15,7 @@ public:
     void use(void);
     GLint get_handle(void);
     GLint get_attrib(const char *);
+    void set_float(const char *, float);
     void set_vec3(const char *, glm::vec3);
     void set_mat4(const char *, glm::mat4);
 };
