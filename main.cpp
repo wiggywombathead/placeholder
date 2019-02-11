@@ -51,16 +51,14 @@ material_t pearl = {
 /* camera */
 Camera camera;
 
-/* shader programs */
-// GLuint lighting_shader, lamp_shader;
-
 /* Shaders */
 Shader lighting_shader, lamp_shader;
 
 /* drawable objects */
 GLuint tetra_vao;
-GLuint cube_vao, cube_tex;
-GLuint lamp_vao;
+GLuint cube_vao;
+
+GLuint container_dmap, container_smap;
 
 glm::mat4 model, view, proj;
 
@@ -120,6 +118,51 @@ GLuint make_cube(void) {
     GLuint vao;
 
     float verts[] = {
+        -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f,
+     0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 0.0f,
+     0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 1.0f,
+     0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 1.0f,
+    -0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 1.0f,
+    -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f,
+
+    -0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   0.0f, 0.0f,
+     0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   1.0f, 0.0f,
+     0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   1.0f, 1.0f,
+     0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   1.0f, 1.0f,
+    -0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   0.0f, 1.0f,
+    -0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   0.0f, 0.0f,
+
+    -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
+    -0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 1.0f,
+    -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
+    -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
+    -0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 0.0f,
+    -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
+
+     0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
+     0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f,
+     0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
+     0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
+     0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 0.0f,
+     0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
+
+    -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 1.0f,
+     0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 1.0f,
+     0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 0.0f,
+     0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 0.0f,
+    -0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 0.0f,
+    -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 1.0f,
+
+    -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f,
+     0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 1.0f,
+     0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 0.0f,
+     0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 0.0f,
+    -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 0.0f,
+    -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f
+    };
+
+    /*
+    float verts[] = {
         // X    Y     Z       NORMAL
         -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
          0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
@@ -164,7 +207,6 @@ GLuint make_cube(void) {
         -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f
     };
 
-    /*
     float verts[] = {
         // X Y Z            // R G B        // tex coords
         -0.5, -0.5,  0.5,   1.0, 0.0, 0.0,  0.0, 0.0,   // bottom left
@@ -204,40 +246,49 @@ GLuint make_cube(void) {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, cube_ebo);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elems), elems, GL_STATIC_DRAW);
 
+    /* position */
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8*sizeof(float), 0);
+    glEnableVertexAttribArray(0);
+
+    /* normal */
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8*sizeof(float), (void *) (3*sizeof(float)));
+    glEnableVertexAttribArray(1);
+
+    /* texture coords */
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8*sizeof(float), (void *) (6*sizeof(float)));
+    glEnableVertexAttribArray(2);
+
+    return vao;
+}
+
+GLuint make_texture(const char *path) {
+    GLuint tex;
+    glGenTextures(1, &tex);
+    glBindTexture(GL_TEXTURE_2D, tex);
+
     /* generate texture */
     int width, height;
     unsigned char *img = SOIL_load_image(
-            "planks.jpg",
+            path,
             &width,
             &height,
             0,
             SOIL_LOAD_RGB
     );
 
-    glGenTextures(1, &cube_tex);
-    glBindTexture(GL_TEXTURE_2D, cube_tex);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, img);
     glGenerateMipmap(GL_TEXTURE_2D);
 
-    /* position */
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6*sizeof(float), 0);
-    glEnableVertexAttribArray(0);
-
-    /* normal */
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6*sizeof(float), (void *) (3*sizeof(float)));
-    glEnableVertexAttribArray(1);
-
-    return vao;
+    return tex;
 }
 
 void draw_cube(void) {
-    // glBindTexture(GL_TEXTURE_2D, cube_tex);
     glBindVertexArray(cube_vao);
     // glDrawElements(GL_TRIANGLES, 6*2*3, GL_UNSIGNED_INT, 0);
     glDrawArrays(GL_TRIANGLES, 0, 6*2*3);
@@ -312,19 +363,15 @@ void keyboard(GLFWwindow *w, int k, int sc, int action, int mods) {
 
 }
 
-glm::vec3 light_pos;
-glm::vec3 light_col;
+glm::vec3 light_pos(1,1,.5);
+glm::vec3 light_col(1.f);
 void update(void) {
 
     t_now = glfwGetTime();
 
     float x = 2*cos(t_now);
     float z = 2*sin(t_now);
-    light_pos = glm::vec3(x, 0, z);
-
-    light_col.x = 11 * sin(t_now);
-    light_col.y = 17 * cos(t_now);
-    light_col.z = 29 * sin(-t_now);
+    // light_pos = glm::vec3(x, 0, z);
 
 }
 
@@ -338,19 +385,12 @@ void display(void) {
     lighting_shader.use();
 
     lighting_shader.set_vec3("view_pos", camera.get_pos());
-    lighting_shader.set_vec3("light_pos", light_pos);
+    lighting_shader.set_vec3("light.position", light_pos);
 
-    glm::vec3 diffuse_col = light_col * glm::vec3(.1);
-    glm::vec3 ambient_col = diffuse_col * glm::vec3(.4);
-
-    lighting_shader.set_vec3("light.ambient", ambient_col);
-    lighting_shader.set_vec3("light.diffuse", diffuse_col);
+    lighting_shader.set_vec3("light.ambient", glm::vec3(.2));
+    lighting_shader.set_vec3("light.diffuse", glm::vec3(.5));
     lighting_shader.set_vec3("light.specular", {1, 1, 1});
-
-    lighting_shader.set_vec3("material.ambient", {1., .5, .31});
-    lighting_shader.set_vec3("material.diffuse", {1., .5, .31});
-    lighting_shader.set_vec3("material.specular", {.5, .5, .5});
-    lighting_shader.set_float("material.shininess", 32);
+    lighting_shader.set_float("material.shininess", 64);
 
     proj = glm::perspective(glm::radians(camera.get_fov()), (float) WIN_W / WIN_H, 1.0f, 50.0f);
     lighting_shader.set_mat4("Proj", proj);
@@ -359,9 +399,13 @@ void display(void) {
     lighting_shader.set_mat4("View", view);
 
     model = glm::mat4(1.f);
-    model = glm::rotate(model, t_now, glm::vec3(1,0,0));
     lighting_shader.set_mat4("Model", model);
 
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, container_dmap);
+
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, container_smap);
     draw_cube();
 
     lamp_shader.use();
@@ -407,6 +451,14 @@ void init(void) {
     /* set up objects */
     cube_vao = make_cube();
     tetra_vao = make_tetra();
+
+    container_dmap = make_texture("tex/container.png");
+    container_smap = make_texture("tex/container_smap.png");
+
+    lighting_shader.use();
+    lighting_shader.set_int("material.diffuse", 0);
+    lighting_shader.set_int("material.specular", 1);
+
 }
 
 int main(int argc, char *argv[]) {

@@ -19,6 +19,11 @@ GLint Shader::get_attrib(const char *var) {
     return glGetAttribLocation(handle, var);
 }
 
+void Shader::set_int(const char *var, int i) {
+    GLint location = glGetUniformLocation(handle, var);
+    glUniform1f(location, i);
+}
+
 void Shader::set_float(const char *var, float f) {
     GLint location = glGetUniformLocation(handle, var);
     glUniform1f(location, f);
