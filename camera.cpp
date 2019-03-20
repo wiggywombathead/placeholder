@@ -8,7 +8,7 @@ Camera::Camera() {
 
     pitch = 0.f;
     yaw = -90.f;
-    fov = 45.f;
+    fov = 75.f;
 }
 
 void Camera::move(glm::vec3 v) {
