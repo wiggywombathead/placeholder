@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <ctime>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -52,11 +53,12 @@ material_t pearl = {
 Camera camera;
 
 /* Shaders */
-Shader lighting_shader, lamp_shader;
+Shader lighting_shader, lamp_shader, simple_shader;
 
 /* drawable objects */
 GLuint tetra_vao;
 GLuint cube_vao;
+GLuint earth_vao;
 
 GLuint container_dmap, container_smap;
 
@@ -119,46 +121,46 @@ GLuint make_cube(void) {
 
     float verts[] = {
         -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f,
-     0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 0.0f,
-     0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 1.0f,
-     0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 1.0f,
-    -0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 1.0f,
-    -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f,
+         0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 0.0f,
+         0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 1.0f,
+         0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 1.0f,
+        -0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 1.0f,
+        -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f,
 
-    -0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   0.0f, 0.0f,
-     0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   1.0f, 0.0f,
-     0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   1.0f, 1.0f,
-     0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   1.0f, 1.0f,
-    -0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   0.0f, 1.0f,
-    -0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   0.0f, 0.0f,
+        -0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   0.0f, 0.0f,
+         0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   1.0f, 0.0f,
+         0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   1.0f, 1.0f,
+         0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   1.0f, 1.0f,
+        -0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   0.0f, 1.0f,
+        -0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   0.0f, 0.0f,
 
-    -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
-    -0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 1.0f,
-    -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
-    -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
-    -0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 0.0f,
-    -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
+        -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
+        -0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 1.0f,
+        -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
+        -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
+        -0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 0.0f,
+        -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
 
-     0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
-     0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f,
-     0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
-     0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
-     0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 0.0f,
-     0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
+         0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
+         0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f,
+         0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
+         0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
+         0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 0.0f,
+         0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
 
-    -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 1.0f,
-     0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 1.0f,
-     0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 0.0f,
-     0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 0.0f,
-    -0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 0.0f,
-    -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 1.0f,
+        -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 1.0f,
+         0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 1.0f,
+         0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 0.0f,
+         0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 0.0f,
+        -0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 0.0f,
+        -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 1.0f,
 
-    -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f,
-     0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 1.0f,
-     0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 0.0f,
-     0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 0.0f,
-    -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 0.0f,
-    -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f
+        -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f,
+         0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 1.0f,
+         0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 0.0f,
+         0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 0.0f,
+        -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 0.0f,
+        -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f
     };
 
     /*
@@ -261,6 +263,80 @@ GLuint make_cube(void) {
     return vao;
 }
 
+int resolution = 20;
+GLint make_earth() {
+
+    srand(time(0));
+
+    GLuint vao, vbo, ebo;
+
+    float gap = 1.f / (resolution - 1);
+
+    float landscape[3 * resolution * resolution];
+
+    float x_pos, z_pos;
+
+    z_pos = -1.f;
+    for (int z = 0; z < resolution; z++) {
+        x_pos = -1.f;
+        for (int x = 0; x < resolution; x++) {
+            int index = z * resolution + x;
+            landscape[3*index] = x_pos + x * gap;
+            landscape[(3*index) + 1] = .25 - .5 * ((float) rand() / RAND_MAX);
+            landscape[(3*index) + 2] = z_pos + z * gap;
+
+            printf("\n[%.2f,%.2f,%.2f] ",
+                    landscape[3*index],
+                    landscape[(3*index) + 1],
+                    landscape[(3*index) + 2]
+                  );
+            x_pos += gap;
+        }
+
+        z_pos += gap;
+    }
+
+    /* points per triangle * triangles per square * total squares */
+    GLuint entries = 3 * 2 * (resolution-1) * (resolution-1);
+    GLuint elems[entries];
+
+    int skip = 0;
+    for (int i = 0; 6*i < entries; i++) {
+        if (i % (resolution-1) == 0 && i != 0)
+            skip++;
+
+        int node = i + skip;
+        elems[6 * i] = node;
+        elems[6 * i + 1] = node + resolution;
+        elems[6 * i + 2] = node + 1;
+        elems[6 * i + 3] = node + 1;
+        elems[6 * i + 4] = node + resolution;
+        elems[6 * i + 5] = node + 1 + resolution;
+    }
+
+    /*
+    for (int i = 0; i < entries; i++)
+        printf("%d ", elems[i]);
+    */
+
+    glGenVertexArrays(1, &vao);
+    glBindVertexArray(vao);
+
+    glGenBuffers(1, &vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(landscape), landscape, GL_STATIC_DRAW);
+
+    glGenBuffers(1, &ebo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elems), elems, GL_STATIC_DRAW);
+
+    /* position */
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3*sizeof(float), 0);
+    glEnableVertexAttribArray(0);
+
+    return vao;
+}
+
 GLuint make_texture(const char *path) {
     GLuint tex;
     glGenTextures(1, &tex);
@@ -276,7 +352,6 @@ GLuint make_texture(const char *path) {
             SOIL_LOAD_RGB
     );
 
-
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
@@ -286,6 +361,13 @@ GLuint make_texture(const char *path) {
     glGenerateMipmap(GL_TEXTURE_2D);
 
     return tex;
+}
+
+void draw_earth(void) {
+    glBindVertexArray(earth_vao);
+    glDrawElements(GL_LINE_STRIP, (resolution-1)*(resolution-1)*2*3, GL_UNSIGNED_INT, 0);
+    // glDrawArrays(GL_POINTS, 0, resolution * 3);
+    glBindVertexArray(0);
 }
 
 void draw_cube(void) {
@@ -371,11 +453,35 @@ void update(void) {
 
     float x = 2*cos(t_now);
     float z = 2*sin(t_now);
-    // light_pos = glm::vec3(x, 0, z);
+    light_pos = glm::vec3(x, 0, z);
 
 }
 
+int ticks;
 void display(void) {
+    glClearColor(0.f, 0.f, 0.f, 0.f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    simple_shader.use();
+
+    ticks++;
+    float val = abs(sinf(ticks * M_PI / 180.f));
+    simple_shader.set_vec3("color", glm::vec3(val, 0, 0));
+    simple_shader.set_float("val", val);
+
+    proj = glm::perspective(glm::radians(camera.get_fov()), (float) WIN_W / WIN_H, 1.0f, 50.0f);
+    simple_shader.set_mat4("Proj", proj);
+
+    view = camera.look();
+    simple_shader.set_mat4("View", view);
+
+    model = glm::mat4(1.f);
+    model = glm::scale(model, glm::vec3(25, 5, 25));
+    simple_shader.set_mat4("Model", model);
+    draw_earth();
+} 
+
+void _display(void) {
 
     GLint unimodel;
 
@@ -441,16 +547,18 @@ void init(void) {
     glfwSetKeyCallback(window, keyboard);
     glfwSetCursorPosCallback(window, cursor);
 
-    // mouse tends to left ???
-    // glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    // FIXED - CURSOR_DISABLED biases input towards left
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
 
     /* Load shaders */
     lighting_shader = Shader("lighting.vert", "lighting.frag");
     lamp_shader = Shader("lamp.vert", "lamp.frag");
+    simple_shader = Shader("simple.vert", "simple.frag");
 
     /* set up objects */
     cube_vao = make_cube();
     tetra_vao = make_tetra();
+    earth_vao = make_earth();
 
     container_dmap = make_texture("tex/container.png");
     container_smap = make_texture("tex/container_smap.png");

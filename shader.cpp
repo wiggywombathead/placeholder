@@ -1,5 +1,6 @@
 #include "shader.h"
 #include <glm/gtc/type_ptr.hpp>
+#include <iostream>
 
 Shader::Shader(void) { }
 
