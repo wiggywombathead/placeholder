@@ -263,7 +263,7 @@ GLuint make_cube(void) {
     return vao;
 }
 
-int resolution = 20;
+int resolution = 30;
 GLint make_earth() {
 
     srand(time(0));
@@ -285,11 +285,6 @@ GLint make_earth() {
             landscape[(3*index) + 1] = .25 - .5 * ((float) rand() / RAND_MAX);
             landscape[(3*index) + 2] = z_pos + z * gap;
 
-            printf("\n[%.2f,%.2f,%.2f] ",
-                    landscape[3*index],
-                    landscape[(3*index) + 1],
-                    landscape[(3*index) + 2]
-                  );
             x_pos += gap;
         }
 
@@ -314,10 +309,8 @@ GLint make_earth() {
         elems[6 * i + 5] = node + 1 + resolution;
     }
 
-    /*
-    for (int i = 0; i < entries; i++)
-        printf("%d ", elems[i]);
-    */
+    // for (int i = 0; i < entries; i++)
+    //     printf("%d ", elems[i]);
 
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
@@ -365,7 +358,7 @@ GLuint make_texture(const char *path) {
 
 void draw_earth(void) {
     glBindVertexArray(earth_vao);
-    glDrawElements(GL_LINE_STRIP, (resolution-1)*(resolution-1)*2*3, GL_UNSIGNED_INT, 0);
+    glDrawElements(GL_TRIANGLES, 3*2*(resolution-1)*(resolution-1), GL_UNSIGNED_INT, 0);
     // glDrawArrays(GL_POINTS, 0, resolution * 3);
     glBindVertexArray(0);
 }
@@ -393,6 +386,16 @@ void cursor(GLFWwindow *w, double x, double y) {
         last_x = x;
         last_y = y;
         first_mouse = false;
+    }
+
+    if (x < WIN_W / 4 || x > 3 * WIN_W / 4) {
+        glfwSetCursorPos(w, WIN_W / 2, y);
+        first_mouse = true;
+    }
+
+    if (y < WIN_H / 4 || y > 3 * WIN_H / 4) {
+        glfwSetCursorPos(w, x, WIN_H / 2);
+        first_mouse = true;
     }
 
     double dx = x - last_x;
@@ -435,6 +438,14 @@ void keyboard(GLFWwindow *w, int k, int sc, int action, int mods) {
         to_move = glm::normalize(glm::cross(camera.get_dir(), camera.get_up()));
         camera.move(step * to_move);
         break;
+    case GLFW_KEY_Z:
+        to_move = glm::vec3(0,1,0);
+        camera.move(step * to_move);
+        break;
+    case GLFW_KEY_X:
+        to_move = glm::vec3(0,-1,0);
+        camera.move(step * to_move);
+        break;
     case GLFW_KEY_LEFT_BRACKET:
         camera.fov_up(1.f);
         break;
@@ -469,14 +480,14 @@ void display(void) {
     simple_shader.set_vec3("color", glm::vec3(val, 0, 0));
     simple_shader.set_float("val", val);
 
-    proj = glm::perspective(glm::radians(camera.get_fov()), (float) WIN_W / WIN_H, 1.0f, 50.0f);
+    proj = glm::perspective(glm::radians(camera.get_fov()), (float) WIN_W / WIN_H, 0.1f, 100.0f);
     simple_shader.set_mat4("Proj", proj);
 
     view = camera.look();
     simple_shader.set_mat4("View", view);
 
     model = glm::mat4(1.f);
-    model = glm::scale(model, glm::vec3(25, 5, 25));
+    model = glm::scale(model, glm::vec3(10, 1, 10));
     simple_shader.set_mat4("Model", model);
     draw_earth();
 } 
@@ -538,6 +549,8 @@ void init(void) {
 
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
+
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     // glEnable(GL_CULL_FACE);
     // glCullFace(GL_BACK);
