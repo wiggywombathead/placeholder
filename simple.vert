@@ -12,6 +12,6 @@ uniform mat4 Proj;
 out vec3 _color;
 
 void main(void) {
-    _color = vec3(val, val, 0.);
+    _color = vec3(val, .5 * val, 0);
     gl_Position = Proj * View * Model * vec4(position, 1.0);
 }
