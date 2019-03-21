@@ -20,6 +20,7 @@
 
 GLFWwindow *window;
 bool error_check;
+bool wireframe = false;
 
 struct material_t {
     glm::vec3 ambient;
@@ -263,7 +264,7 @@ GLuint make_cube(void) {
     return vao;
 }
 
-int resolution = 30;
+int resolution = 100;
 GLint make_earth() {
 
     srand(time(0));
@@ -272,11 +273,34 @@ GLint make_earth() {
 
     float gap = 1.f / (resolution - 1);
 
-    float landscape[3 * resolution * resolution];
+    // float landscape[3 * resolution * resolution];
+    glm::vec3 landscape[2 * resolution * resolution];
 
     float x_pos, z_pos;
 
     z_pos = -1.f;
+
+    for (int j = 0; j < resolution; j++) {
+        x_pos = -1.f;
+        for (int i = 0; i < resolution; i++) {
+            int index = j * resolution + i;
+
+            int x = x_pos + i * gap;
+            int z = z_pos + j * gap;
+            landscape[2*index] = glm::vec3(
+                    x_pos,
+                    .25 - .5 * ((float) rand() / RAND_MAX),
+                    z_pos
+                );
+
+            landscape[2*index + 1] = 0.f;   // Normal
+
+            x_pos += gap;
+        }
+        z_pos += gap;
+    }
+
+    /*
     for (int z = 0; z < resolution; z++) {
         x_pos = -1.f;
         for (int x = 0; x < resolution; x++) {
@@ -290,6 +314,7 @@ GLint make_earth() {
 
         z_pos += gap;
     }
+    */
 
     /* points per triangle * triangles per square * total squares */
     GLuint entries = 3 * 2 * (resolution-1) * (resolution-1);
@@ -301,12 +326,12 @@ GLint make_earth() {
             skip++;
 
         int node = i + skip;
-        elems[6 * i] = node;
-        elems[6 * i + 1] = node + resolution;
-        elems[6 * i + 2] = node + 1;
-        elems[6 * i + 3] = node + 1;
-        elems[6 * i + 4] = node + resolution;
-        elems[6 * i + 5] = node + 1 + resolution;
+        elems[6*i] = node;
+        elems[6*i + 1] = node + resolution;
+        elems[6*i + 2] = node + 1;
+        elems[6*i + 3] = node + 1;
+        elems[6*i + 4] = node + resolution;
+        elems[6*i + 5] = node + 1 + resolution;
     }
 
     // for (int i = 0; i < entries; i++)
@@ -317,14 +342,14 @@ GLint make_earth() {
 
     glGenBuffers(1, &vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(landscape), landscape, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(landscape), landscape, GL_DYNAMIC_DRAW);
 
     glGenBuffers(1, &ebo);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elems), elems, GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elems), elems, GL_DYNAMIC_DRAW);
 
     /* position */
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3*sizeof(float), 0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), 0);
     glEnableVertexAttribArray(0);
 
     return vao;
@@ -421,6 +446,7 @@ void keyboard(GLFWwindow *w, int k, int sc, int action, int mods) {
         return;
     
     switch (k) {
+    /* GAME STATE */
     case GLFW_KEY_Q:
         glfwSetWindowShouldClose(w, GLFW_TRUE);
     /* CAMERA MOVEMENT */
@@ -446,11 +472,19 @@ void keyboard(GLFWwindow *w, int k, int sc, int action, int mods) {
         to_move = glm::vec3(0,-1,0);
         camera.move(step * to_move);
         break;
+    /* DISPLAY PROPERTIES */
     case GLFW_KEY_LEFT_BRACKET:
         camera.fov_up(1.f);
         break;
     case GLFW_KEY_RIGHT_BRACKET:
         camera.fov_down(1.f);
+        break;
+    case GLFW_KEY_F:
+        if (wireframe)
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        else
+            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        wireframe = !wireframe;
         break;
     };
 
@@ -473,21 +507,34 @@ void display(void) {
     glClearColor(0.f, 0.f, 0.f, 0.f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    lighting_shader.use();
+    lighting_shader.set_vec3("view_pos", camera.get_pos());
+    lighting_shader.set_vec3("light.position", light_pos);
+
+    lighting_shader.set_vec3("light.ambient", glm::vec3(.2));
+    lighting_shader.set_vec3("light.diffuse", glm::vec3(.5));
+    lighting_shader.set_vec3("light.specular", {1, 1, 1});
+    lighting_shader.set_float("material.shininess", 64);
+
     simple_shader.use();
 
     ticks++;
-    float val = abs(sinf(ticks * M_PI / 180.f));
+    float val = 1 + .5 * sin(ticks * M_PI / 180.f);
     simple_shader.set_vec3("color", glm::vec3(val, 0, 0));
     simple_shader.set_float("val", val);
 
-    proj = glm::perspective(glm::radians(camera.get_fov()), (float) WIN_W / WIN_H, 0.1f, 100.0f);
+    proj = glm::perspective(
+            glm::radians(camera.get_fov()),
+            (float) WIN_W / WIN_H, 
+            0.1f, 200.0f
+        );
     simple_shader.set_mat4("Proj", proj);
 
     view = camera.look();
     simple_shader.set_mat4("View", view);
 
     model = glm::mat4(1.f);
-    model = glm::scale(model, glm::vec3(10, 1, 10));
+    model = glm::scale(model, glm::vec3(400, 10, 400));
     simple_shader.set_mat4("Model", model);
     draw_earth();
 } 
@@ -550,11 +597,12 @@ void init(void) {
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
 
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-    // glEnable(GL_CULL_FACE);
-    // glCullFace(GL_BACK);
-    // glFrontFace(GL_CCW);
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
+    glFrontFace(GL_CCW);
 
     /* glfw settings */
     glfwSetKeyCallback(window, keyboard);
