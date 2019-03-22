@@ -264,36 +264,51 @@ GLuint make_cube(void) {
     return vao;
 }
 
-int resolution = 100;
+int resolution = 20;
+float scale = 20;
 GLint make_earth() {
 
     srand(time(0));
 
     GLuint vao, vbo, ebo;
 
-    float gap = 1.f / (resolution - 1);
+    float gap = 2.f / (resolution - 1);
 
-    // float landscape[3 * resolution * resolution];
     glm::vec3 landscape[2 * resolution * resolution];
 
     float x_pos, z_pos;
 
     z_pos = -1.f;
-
     for (int j = 0; j < resolution; j++) {
         x_pos = -1.f;
         for (int i = 0; i < resolution; i++) {
-            int index = j * resolution + i;
 
             int x = x_pos + i * gap;
             int z = z_pos + j * gap;
-            landscape[2*index] = glm::vec3(
+
+            int index = j * resolution + i;
+            int vertex = 2*index;
+            int normal = 2*index+1;
+
+            // vertex info
+            landscape[vertex] = glm::vec3(
                     x_pos,
                     .25 - .5 * ((float) rand() / RAND_MAX),
                     z_pos
                 );
 
-            landscape[2*index + 1] = 0.f;   // Normal
+            // normal info
+            if (i == resolution-1) 
+                landscape[normal] = landscape[normal - 2];
+            else if (j == resolution-1)
+                landscape[normal] = landscape[normal - 2 * resolution];
+            else
+                landscape[normal] = glm::normalize(
+                        glm::cross(
+                            landscape[vertex + 2 * resolution] - landscape[vertex],
+                            landscape[vertex + 2] - landscape[vertex + 2 * resolution]
+                        )
+                    );
 
             x_pos += gap;
         }
@@ -301,6 +316,7 @@ GLint make_earth() {
     }
 
     /*
+    float landscape[3 * resolution * resolution];
     for (int z = 0; z < resolution; z++) {
         x_pos = -1.f;
         for (int x = 0; x < resolution; x++) {
@@ -349,8 +365,12 @@ GLint make_earth() {
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elems), elems, GL_DYNAMIC_DRAW);
 
     /* position */
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), 0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 2*sizeof(glm::vec3), 0);
     glEnableVertexAttribArray(0);
+
+    /* normal */
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 2*sizeof(glm::vec3), (void *) (2*sizeof(glm::vec3)));
+    glEnableVertexAttribArray(1);
 
     return vao;
 }
@@ -436,6 +456,7 @@ void cursor(GLFWwindow *w, double x, double y) {
     camera.change_yaw(dx);
 }
 
+glm::vec3 light_pos(0, 10, 0);
 void keyboard(GLFWwindow *w, int k, int sc, int action, int mods) {
 
     float step = .5f;
@@ -472,6 +493,9 @@ void keyboard(GLFWwindow *w, int k, int sc, int action, int mods) {
         to_move = glm::vec3(0,-1,0);
         camera.move(step * to_move);
         break;
+    case GLFW_KEY_SPACE:
+        light_pos = camera.get_pos();
+        break;
     /* DISPLAY PROPERTIES */
     case GLFW_KEY_LEFT_BRACKET:
         camera.fov_up(1.f);
@@ -490,38 +514,30 @@ void keyboard(GLFWwindow *w, int k, int sc, int action, int mods) {
 
 }
 
-glm::vec3 light_pos(1,1,.5);
 glm::vec3 light_col(1.f);
 void update(void) {
 
     t_now = glfwGetTime();
 
-    float x = 2*cos(t_now);
-    float z = 2*sin(t_now);
-    light_pos = glm::vec3(x, 0, z);
-
+    float z = 2*cos(t_now);
+    float y = 2*sin(t_now);
+    light_pos = scale/2 * glm::vec3(0, y, z);
 }
 
 int ticks;
 void display(void) {
+
     glClearColor(0.f, 0.f, 0.f, 0.f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    lighting_shader.use();
-    lighting_shader.set_vec3("view_pos", camera.get_pos());
-    lighting_shader.set_vec3("light.position", light_pos);
-
-    lighting_shader.set_vec3("light.ambient", glm::vec3(.2));
-    lighting_shader.set_vec3("light.diffuse", glm::vec3(.5));
-    lighting_shader.set_vec3("light.specular", {1, 1, 1});
-    lighting_shader.set_float("material.shininess", 64);
-
     simple_shader.use();
 
-    ticks++;
-    float val = 1 + .5 * sin(ticks * M_PI / 180.f);
-    simple_shader.set_vec3("color", glm::vec3(val, 0, 0));
-    simple_shader.set_float("val", val);
+    simple_shader.set_vec3("view", camera.get_pos());
+    simple_shader.set_vec3("sun.position", light_pos);
+
+    simple_shader.set_vec3("sun.ambient", glm::vec3(.2));
+    simple_shader.set_vec3("sun.diffuse", glm::vec3(.5));
+    simple_shader.set_vec3("sun.specular", glm::vec3(.3));
 
     proj = glm::perspective(
             glm::radians(camera.get_fov()),
@@ -534,9 +550,27 @@ void display(void) {
     simple_shader.set_mat4("View", view);
 
     model = glm::mat4(1.f);
-    model = glm::scale(model, glm::vec3(400, 10, 400));
+    model = glm::translate(model, glm::vec3(0.));
+    model = glm::scale(model, glm::vec3(scale, scale/5, scale));
     simple_shader.set_mat4("Model", model);
+
+    simple_shader.set_vec3("ground.diffuse", glm::vec3(.3, .6, 0.));
+    simple_shader.set_vec3("ground.specular", glm::vec3(.3,.3,.3));
+    simple_shader.set_float("ground.shininess", 1);
+
     draw_earth();
+
+    lamp_shader.use();
+    lamp_shader.set_vec3("light_color", light_col);
+
+    lamp_shader.set_mat4("Proj", proj);
+    lamp_shader.set_mat4("View", view);
+
+    model = glm::mat4(1.f);
+    model = glm::translate(model, light_pos);
+    lamp_shader.set_mat4("Model", model);
+
+    draw_cube();
 } 
 
 void _display(void) {
@@ -600,9 +634,9 @@ void init(void) {
     // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-    glEnable(GL_CULL_FACE);
-    glCullFace(GL_BACK);
-    glFrontFace(GL_CCW);
+    // glEnable(GL_CULL_FACE);
+    // glCullFace(GL_BACK);
+    // glFrontFace(GL_CCW);
 
     /* glfw settings */
     glfwSetKeyCallback(window, keyboard);
