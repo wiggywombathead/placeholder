@@ -1,17 +1,18 @@
 #version 330
 
 layout (location = 0) in vec3 position;
-
-uniform float val;
-uniform vec3 color;
+layout (location = 1) in vec3 normal;
 
 uniform mat4 Model;
 uniform mat4 View;
 uniform mat4 Proj;
 
-out vec3 _color;
+out vec3 FragPos;
+out vec3 Normal;
 
 void main(void) {
-    _color = vec3(val, .5 * val, 0);
+    Normal = mat3(transpose(inverse(Model))) * normal;
+    FragPos = vec3(Model * vec4(position, 1.0));
+
     gl_Position = Proj * View * Model * vec4(position, 1.0);
 }
