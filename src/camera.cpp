@@ -2,12 +2,12 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 Camera::Camera() {
-    pos = glm::vec3(0.f, 1.f, 5.f);
+    pos = glm::vec3(0.f, 0.f, 5.f);
     dir = glm::vec3(0.f, 0.f, -1.f);
     up = glm::vec3(0.f, 1.f, 0.f);
 
     pitch = 0.f;
-    yaw = M_PI/2;
+    yaw = -M_PI/2;
     fov = 75.f;
 }
 
@@ -24,7 +24,6 @@ glm::mat4 Camera::look(void) {
     up = glm::cross(dir, right);
 
     return glm::lookAt(pos, pos + dir, up);
-    // return glm::lookAt(pos, glm::vec3(0.f), y);
 }
 
 void Camera::calc_dir(void) {
@@ -39,11 +38,11 @@ void Camera::calc_dir(void) {
 void Camera::change_pitch(float rad) {
     pitch += rad;
 
-    if (pitch > 90.f)
-        pitch = 90.f;
+    if (pitch > M_PI/2 - M_PI/72)
+        pitch = M_PI/2 - M_PI/72;
     
-    if (pitch < -90.f)
-        pitch = -90.f;
+    if (pitch < -M_PI/2 + M_PI/72)
+        pitch = -M_PI/2 + M_PI/72;
 }
 
 void Camera::change_yaw(float rad) {

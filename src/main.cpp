@@ -21,6 +21,7 @@
 GLFWwindow *window;
 bool error_check;
 bool wireframe = false;
+bool flat_shading = false;
 
 struct material_t {
     glm::vec3 ambient;
@@ -121,6 +122,7 @@ GLuint make_cube(void) {
     GLuint vao;
 
     float verts[] = {
+        // X Y Z              // NORMAL X Y Z      // TEX
         -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f,
          0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 0.0f,
          0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 1.0f,
@@ -164,66 +166,6 @@ GLuint make_cube(void) {
         -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f
     };
 
-    /*
-    float verts[] = {
-        // X    Y     Z       NORMAL
-        -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-         0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-         0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-         0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-        -0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-
-        -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
-         0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
-         0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
-         0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
-        -0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
-
-        -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
-        -0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
-        -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
-        -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
-        -0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
-        -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
-
-         0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
-         0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
-         0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
-         0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
-         0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
-         0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
-
-        -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
-         0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
-         0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
-         0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
-
-        -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
-         0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
-         0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
-         0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
-        -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
-        -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f
-    };
-
-    float verts[] = {
-        // X Y Z            // R G B        // tex coords
-        -0.5, -0.5,  0.5,   1.0, 0.0, 0.0,  0.0, 0.0,   // bottom left
-         0.5, -0.5,  0.5,   0.0, 1.0, 0.0,  1.0, 0.0,   // bottom right
-         0.5, -0.5, -0.5,   0.0, 0.0, 1.0,  1.0, 1.0,   // top right
-        -0.5, -0.5, -0.5,   1.0, 1.0, 1.0,  0.0, 1.0,   // top left
-                            
-        -0.5,  0.5,  0.5,   1.0, 1.0, 0.0,  0.0, 0.0,
-         0.5,  0.5,  0.5,   0.0, 1.0, 1.0,  1.0, 0.0,
-         0.5,  0.5, -0.5,   1.0, 0.0, 1.0,  1.0, 1.0,
-        -0.5,  0.5, -0.5,   0.0, 0.0, 0.0,  0.0, 1.0,
-    };
-    */
-
     GLuint elems[] = {
         0,1,5,5,4,0,    // front
         1,2,6,6,5,1,    // right
@@ -265,7 +207,7 @@ GLuint make_cube(void) {
 }
 
 int resolution = 20;
-float scale = 20;
+float scale = 1;
 GLint make_earth() {
 
     srand(time(0));
@@ -349,9 +291,6 @@ GLint make_earth() {
         elems[6*i + 4] = node + resolution;
         elems[6*i + 5] = node + 1 + resolution;
     }
-
-    // for (int i = 0; i < entries; i++)
-    //     printf("%d ", elems[i]);
 
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
@@ -452,7 +391,6 @@ void cursor(GLFWwindow *w, double x, double y) {
     dx *= sensitivity;
     dy *= sensitivity;
 
-    printf("P: %.2f\nY: %.2f\n", camera.get_pitch(), camera.get_yaw());
     camera.change_pitch(-dy);
     camera.change_yaw(dx);
 }
@@ -511,21 +449,27 @@ void keyboard(GLFWwindow *w, int k, int sc, int action, int mods) {
             glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         wireframe = !wireframe;
         break;
+    case GLFW_KEY_G:
+        if (flat_shading)
+            glShadeModel(GL_FLAT);
+        else
+            glShadeModel(GL_SMOOTH);
+        flat_shading = !flat_shading;
     };
 
 }
 
-glm::vec3 light_col(1.f);
+glm::vec3 light_col(1.);
 void update(void) {
 
     t_now = glfwGetTime();
 
     float z = 2*cos(t_now);
-    float y = 2*sin(t_now);
-    light_pos = scale/2 * glm::vec3(0, y, z);
+    float x = 2*sin(t_now);
+
+    light_pos = glm::vec3(x, 0, z);
 }
 
-int ticks;
 void display(void) {
 
     glClearColor(0.f, 0.f, 0.f, 0.f);
@@ -569,6 +513,7 @@ void display(void) {
 
     model = glm::mat4(1.f);
     model = glm::translate(model, light_pos);
+    model = glm::scale(model, glm::vec3(.1f));
     lamp_shader.set_mat4("Model", model);
 
     draw_cube();
@@ -589,9 +534,13 @@ void _display(void) {
     lighting_shader.set_vec3("light.ambient", glm::vec3(.2));
     lighting_shader.set_vec3("light.diffuse", glm::vec3(.5));
     lighting_shader.set_vec3("light.specular", {1, 1, 1});
-    lighting_shader.set_float("material.shininess", 64);
 
-    proj = glm::perspective(glm::radians(camera.get_fov()), (float) WIN_W / WIN_H, 1.0f, 50.0f);
+    proj = glm::perspective(
+            glm::radians(camera.get_fov()),
+            (float) WIN_W / WIN_H, 
+            1.0f, 50.0f
+        );
+
     lighting_shader.set_mat4("Proj", proj);
 
     view = camera.look();
@@ -603,8 +552,8 @@ void _display(void) {
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, container_dmap);
 
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, container_smap);
+    // glActiveTexture(GL_TEXTURE1);
+    // glBindTexture(GL_TEXTURE_2D, container_smap);
     draw_cube();
 
     lamp_shader.use();
@@ -635,6 +584,8 @@ void init(void) {
     // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
+    glShadeModel(GL_SMOOTH);
+
     // glEnable(GL_CULL_FACE);
     // glCullFace(GL_BACK);
     // glFrontFace(GL_CCW);
@@ -647,9 +598,9 @@ void init(void) {
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
 
     /* Load shaders */
-    lighting_shader = Shader("lighting.vert", "lighting.frag");
-    lamp_shader = Shader("lamp.vert", "lamp.frag");
-    simple_shader = Shader("simple.vert", "simple.frag");
+    lighting_shader = Shader("shaders/lighting.vert", "shaders/lighting.frag");
+    lamp_shader = Shader("shaders/lamp.vert", "shaders/lamp.frag");
+    simple_shader = Shader("shaders/simple.vert", "shaders/simple.frag");
 
     /* set up objects */
     cube_vao = make_cube();
@@ -662,6 +613,7 @@ void init(void) {
     lighting_shader.use();
     lighting_shader.set_int("material.diffuse", 0);
     lighting_shader.set_int("material.specular", 1);
+    lighting_shader.set_float("material.shininess", 64);
 
 }
 
@@ -709,7 +661,7 @@ int main(int argc, char *argv[]) {
     while (!glfwWindowShouldClose(window)) {
 
         update();
-        display();
+        _display();
 
         glfwPollEvents();
         glfwSwapBuffers(window);
