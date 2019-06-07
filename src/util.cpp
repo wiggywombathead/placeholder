@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <SOIL/SOIL.h>
 
 /* read shader into buffer */
 int parse_shader(const char *fname, char *buf) {
@@ -31,7 +32,7 @@ GLuint create_shader(const char *name, char *source, GLenum type) {
     glShaderSource(shader, 1, &source, NULL);
     glCompileShader(shader);
 
-    printf("Compiling %s - ", name);
+    printf("Compiling %s\n", name);
     // print_shader_status(shader);
 
     return shader;
@@ -71,3 +72,37 @@ void print_shader_status(GLuint shader) {
 
     printf("%s", buf);
 }
+
+GLuint make_texture(const char *path) {
+    GLuint tex;
+    glGenTextures(1, &tex);
+
+    /* generate texture */
+    int width, height, components;
+    unsigned char *img = SOIL_load_image(
+            path,
+            &width,
+            &height,
+            &components,
+            0
+    );
+
+    GLenum format;
+    switch (components) {
+    case 1: format = GL_RED; break;
+    case 3: format = GL_RGB; break;
+    case 4: format = GL_RGBA; break;
+    }
+
+    glBindTexture(GL_TEXTURE_2D, tex);
+    glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, img);
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    return tex;
+}
+

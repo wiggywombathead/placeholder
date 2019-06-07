@@ -9,7 +9,6 @@
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
-#include <SOIL/SOIL.h>
 
 #include "util.h"
 #include "camera.h"
@@ -22,6 +21,7 @@ GLFWwindow *window;
 bool error_check;
 bool wireframe = false;
 bool flat_shading = false;
+bool paused = false;
 
 struct material_t {
     glm::vec3 ambient;
@@ -55,14 +55,17 @@ material_t pearl = {
 Camera camera;
 
 /* Shaders */
-Shader lighting_shader, lamp_shader, simple_shader;
+Shader lighting_shader;
+Shader lamp_shader;
+Shader material_shader;
+Shader simple_shader;
 
 /* drawable objects */
 GLuint tetra_vao;
 GLuint cube_vao;
 GLuint earth_vao;
 
-GLuint container_dmap, container_smap;
+GLuint container_diff, container_spec;
 
 glm::mat4 model, view, proj;
 
@@ -314,32 +317,6 @@ GLint make_earth() {
     return vao;
 }
 
-GLuint make_texture(const char *path) {
-    GLuint tex;
-    glGenTextures(1, &tex);
-    glBindTexture(GL_TEXTURE_2D, tex);
-
-    /* generate texture */
-    int width, height;
-    unsigned char *img = SOIL_load_image(
-            path,
-            &width,
-            &height,
-            0,
-            SOIL_LOAD_RGB
-    );
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, img);
-    glGenerateMipmap(GL_TEXTURE_2D);
-
-    return tex;
-}
-
 void draw_earth(void) {
     glBindVertexArray(earth_vao);
     glDrawElements(GL_TRIANGLES, 3*2*(resolution-1)*(resolution-1), GL_UNSIGNED_INT, 0);
@@ -395,7 +372,9 @@ void cursor(GLFWwindow *w, double x, double y) {
     camera.change_yaw(dx);
 }
 
-glm::vec3 light_pos(0, 10, 0);
+glm::vec3 light_pos(0, 0, 0);
+glm::vec3 light_centre(0, 0, 0);
+glm::vec3 light_col(1.f);
 void keyboard(GLFWwindow *w, int k, int sc, int action, int mods) {
 
     float step = .5f;
@@ -409,6 +388,9 @@ void keyboard(GLFWwindow *w, int k, int sc, int action, int mods) {
     /* GAME STATE */
     case GLFW_KEY_Q:
         glfwSetWindowShouldClose(w, GLFW_TRUE);
+    case GLFW_KEY_P:
+        paused = !paused;
+        break;
     /* CAMERA MOVEMENT */
     case GLFW_KEY_W:
         camera.move(step * camera.get_dir());
@@ -433,7 +415,7 @@ void keyboard(GLFWwindow *w, int k, int sc, int action, int mods) {
         camera.move(step * to_move);
         break;
     case GLFW_KEY_SPACE:
-        light_pos = camera.get_pos();
+        light_centre = camera.get_pos();
         break;
     /* DISPLAY PROPERTIES */
     case GLFW_KEY_LEFT_BRACKET:
@@ -459,69 +441,24 @@ void keyboard(GLFWwindow *w, int k, int sc, int action, int mods) {
 
 }
 
-glm::vec3 light_col(1.);
+int ticks = 0;
 void update(void) {
+
+    if (paused)
+        return;
 
     t_now = glfwGetTime();
 
-    float z = 2*cos(t_now);
-    float x = 2*sin(t_now);
+    float rads = ticks * M_PI / 180.f;
 
-    light_pos = glm::vec3(x, 0, z);
+    float z = 2*cos(rads);
+    float x = 2*sin(rads);
+    light_pos = glm::vec3(light_centre.x + x, 0, light_centre.z + z);
+
+    ticks++;
 }
 
 void display(void) {
-
-    glClearColor(0.f, 0.f, 0.f, 0.f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    simple_shader.use();
-
-    simple_shader.set_vec3("view", camera.get_pos());
-    simple_shader.set_vec3("sun.position", light_pos);
-
-    simple_shader.set_vec3("sun.ambient", glm::vec3(.2));
-    simple_shader.set_vec3("sun.diffuse", glm::vec3(.5));
-    simple_shader.set_vec3("sun.specular", glm::vec3(.3));
-
-    proj = glm::perspective(
-            glm::radians(camera.get_fov()),
-            (float) WIN_W / WIN_H, 
-            0.1f, 200.0f
-        );
-    simple_shader.set_mat4("Proj", proj);
-
-    view = camera.look();
-    simple_shader.set_mat4("View", view);
-
-    model = glm::mat4(1.f);
-    model = glm::translate(model, glm::vec3(0.));
-    model = glm::scale(model, glm::vec3(scale, scale/5, scale));
-    simple_shader.set_mat4("Model", model);
-
-    simple_shader.set_vec3("ground.diffuse", glm::vec3(.3, .6, 0.));
-    simple_shader.set_vec3("ground.specular", glm::vec3(.3,.3,.3));
-    simple_shader.set_float("ground.shininess", 1);
-
-    draw_earth();
-
-    lamp_shader.use();
-    lamp_shader.set_vec3("light_color", light_col);
-
-    lamp_shader.set_mat4("Proj", proj);
-    lamp_shader.set_mat4("View", view);
-
-    model = glm::mat4(1.f);
-    model = glm::translate(model, light_pos);
-    model = glm::scale(model, glm::vec3(.1f));
-    lamp_shader.set_mat4("Model", model);
-
-    draw_cube();
-} 
-
-void _display(void) {
-
-    GLint unimodel;
 
     glClearColor(0.f, 0.f, 0.f, 0.f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -529,18 +466,17 @@ void _display(void) {
     lighting_shader.use();
 
     lighting_shader.set_vec3("view_pos", camera.get_pos());
-    lighting_shader.set_vec3("light.position", light_pos);
 
+    lighting_shader.set_vec3("light.position", light_pos);
     lighting_shader.set_vec3("light.ambient", glm::vec3(.2));
     lighting_shader.set_vec3("light.diffuse", glm::vec3(.5));
-    lighting_shader.set_vec3("light.specular", {1, 1, 1});
+    lighting_shader.set_vec3("light.specular", glm::vec3(1.));
 
-    proj = glm::perspective(
-            glm::radians(camera.get_fov()),
-            (float) WIN_W / WIN_H, 
-            1.0f, 50.0f
-        );
+    lighting_shader.set_int("material.diffuse", 0);
+    lighting_shader.set_int("material.specular", 1);
+    lighting_shader.set_float("material.shininess", 64.f);
 
+    proj = glm::perspective(glm::radians(camera.get_fov()), (float) WIN_W / WIN_H, 1.0f, 50.0f);
     lighting_shader.set_mat4("Proj", proj);
 
     view = camera.look();
@@ -550,10 +486,10 @@ void _display(void) {
     lighting_shader.set_mat4("Model", model);
 
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, container_dmap);
+    glBindTexture(GL_TEXTURE_2D, container_diff);
 
-    // glActiveTexture(GL_TEXTURE1);
-    // glBindTexture(GL_TEXTURE_2D, container_smap);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, container_spec);
     draw_cube();
 
     lamp_shader.use();
@@ -594,27 +530,21 @@ void init(void) {
     glfwSetKeyCallback(window, keyboard);
     glfwSetCursorPosCallback(window, cursor);
 
-    // FIXED - CURSOR_DISABLED biases input towards left
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
 
     /* Load shaders */
+    // material_shader = Shader("shaders/lighting.vert", "shaders/material.frag");
+    // simple_shader = Shader("shaders/simple.vert", "shaders/simple.frag");
     lighting_shader = Shader("shaders/lighting.vert", "shaders/lighting.frag");
     lamp_shader = Shader("shaders/lamp.vert", "shaders/lamp.frag");
-    simple_shader = Shader("shaders/simple.vert", "shaders/simple.frag");
 
     /* set up objects */
     cube_vao = make_cube();
     tetra_vao = make_tetra();
     earth_vao = make_earth();
 
-    container_dmap = make_texture("tex/container.png");
-    container_smap = make_texture("tex/container_smap.png");
-
-    lighting_shader.use();
-    lighting_shader.set_int("material.diffuse", 0);
-    lighting_shader.set_int("material.specular", 1);
-    lighting_shader.set_float("material.shininess", 64);
-
+    container_diff = make_texture("tex/container_diff.png");
+    container_spec = make_texture("tex/container_spec.png");
 }
 
 int main(int argc, char *argv[]) {
@@ -661,7 +591,7 @@ int main(int argc, char *argv[]) {
     while (!glfwWindowShouldClose(window)) {
 
         update();
-        _display();
+        display();
 
         glfwPollEvents();
         glfwSwapBuffers(window);

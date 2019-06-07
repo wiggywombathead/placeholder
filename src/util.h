@@ -9,6 +9,7 @@ int parse_shader(const char *fname, char *buf);
 GLuint create_shader(const char *name, char *source, GLenum type);
 GLuint create_program(const char *vert, const char *frag, const char *geom = nullptr);
 void print_shader_status(GLuint shader);
+GLuint make_texture(const char *path);
 
 /*
 unsigned long getFileLength(std::ifstream& file) {
