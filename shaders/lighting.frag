@@ -6,8 +6,15 @@ struct material_t {
     float shininess;
 };
 
-struct light_t {
+struct plight_t {
     vec3 position;
+    vec3 ambient;
+    vec3 diffuse;
+    vec3 specular;
+};
+
+struct dlight_t {
+    vec3 direction;
     vec3 ambient;
     vec3 diffuse;
     vec3 specular;
@@ -21,11 +28,14 @@ out vec4 FragColor;
 
 uniform vec3 view_pos;
 uniform material_t material;
-uniform light_t light;
+uniform dlight_t light;
+uniform plight_t plight;
 
 void main(void) {
     vec3 norm = normalize(Normal);
-    vec3 light_dir = normalize(light.position - FragPos);
+
+    // vec3 light_dir = normalize(light.position - FragPos);
+    vec3 light_dir = normalize(-light.direction);
     float diff = max(dot(norm, light_dir), 0.0);
 
     vec3 view_dir = normalize(view_pos - FragPos);

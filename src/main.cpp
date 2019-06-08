@@ -372,6 +372,7 @@ void cursor(GLFWwindow *w, double x, double y) {
     camera.change_yaw(dx);
 }
 
+bool tex1 = true;
 glm::vec3 light_pos(0, 0, 0);
 glm::vec3 light_centre(0, 0, 0);
 glm::vec3 light_col(1.f);
@@ -437,6 +438,10 @@ void keyboard(GLFWwindow *w, int k, int sc, int action, int mods) {
         else
             glShadeModel(GL_SMOOTH);
         flat_shading = !flat_shading;
+        break;
+    case GLFW_KEY_H:
+        tex1 = !tex1; 
+        printf("Drawing %s texture\n", tex1 == true ? "1st" : "2nd");
     };
 
 }
@@ -458,6 +463,19 @@ void update(void) {
     ticks++;
 }
 
+glm::vec3 cubePositions[] = {
+    glm::vec3( 0.0f,  0.0f,  0.0f),
+    glm::vec3( 2.0f,  5.0f, -15.0f),
+    glm::vec3(-1.5f, -2.2f, -2.5f),
+    glm::vec3(-3.8f, -2.0f, -12.3f),
+    glm::vec3( 2.4f, -0.4f, -3.5f),
+    glm::vec3(-1.7f,  3.0f, -7.5f),
+    glm::vec3( 1.3f, -2.0f, -2.5f),
+    glm::vec3( 1.5f,  2.0f, -2.5f),
+    glm::vec3( 1.5f,  0.2f, -1.5f),
+    glm::vec3(-1.3f,  1.0f, -1.5f)
+};
+
 void display(void) {
 
     glClearColor(0.f, 0.f, 0.f, 0.f);
@@ -471,6 +489,7 @@ void display(void) {
     lighting_shader.set_vec3("light.ambient", glm::vec3(.2));
     lighting_shader.set_vec3("light.diffuse", glm::vec3(.5));
     lighting_shader.set_vec3("light.specular", glm::vec3(1.));
+    lighting_shader.set_vec3("light.direction", glm::vec3(-.2f, -1.f, -.3f));
 
     lighting_shader.set_int("material.diffuse", 0);
     lighting_shader.set_int("material.specular", 1);
@@ -519,8 +538,6 @@ void init(void) {
 
     // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
-    glShadeModel(GL_SMOOTH);
 
     // glEnable(GL_CULL_FACE);
     // glCullFace(GL_BACK);
