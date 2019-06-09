@@ -374,7 +374,7 @@ void cursor(GLFWwindow *w, double x, double y) {
 
 bool tex1 = true;
 glm::vec3 light_pos(0, 0, 0);
-glm::vec3 light_centre(0, 0, 0);
+glm::vec3 light_centre(0, 0, 3);
 glm::vec3 light_col(1.f);
 void keyboard(GLFWwindow *w, int k, int sc, int action, int mods) {
 
@@ -457,8 +457,8 @@ void update(void) {
     float rads = ticks * M_PI / 180.f;
 
     float z = 2*cos(rads);
-    float x = 2*sin(rads);
-    light_pos = glm::vec3(light_centre.x + x, 0, light_centre.z + z);
+    // float x = 2*sin(rads);
+    light_pos = glm::vec3(light_centre.x, 0, light_centre.z + z);
 
     ticks++;
 }
@@ -485,15 +485,19 @@ void display(void) {
 
     lighting_shader.set_vec3("view_pos", camera.get_pos());
 
-    lighting_shader.set_vec3("light.position", light_pos);
+    lighting_shader.set_vec3("light.position", camera.get_pos());
+    lighting_shader.set_vec3("light.direction", camera.get_dir());
     lighting_shader.set_vec3("light.ambient", glm::vec3(.2));
     lighting_shader.set_vec3("light.diffuse", glm::vec3(.5));
     lighting_shader.set_vec3("light.specular", glm::vec3(1.));
-    lighting_shader.set_vec3("light.direction", glm::vec3(-.2f, -1.f, -.3f));
+    lighting_shader.set_float("light.cutoff", glm::cos(glm::radians(12.5f)));
+
+    /* attenuation */
+    lighting_shader.set_vec3("light.attenuation", glm::vec3(.032f, .09f, 1.f));
 
     lighting_shader.set_int("material.diffuse", 0);
     lighting_shader.set_int("material.specular", 1);
-    lighting_shader.set_float("material.shininess", 64.f);
+    lighting_shader.set_float("material.shininess", 16.f);
 
     proj = glm::perspective(glm::radians(camera.get_fov()), (float) WIN_W / WIN_H, 1.0f, 50.0f);
     lighting_shader.set_mat4("Proj", proj);
