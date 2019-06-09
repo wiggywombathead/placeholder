@@ -33,7 +33,7 @@ GLuint create_shader(const char *name, char *source, GLenum type) {
     glCompileShader(shader);
 
     printf("Compiling %s\n", name);
-    // print_shader_status(shader);
+    print_shader_status(shader);
 
     return shader;
 }

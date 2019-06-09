@@ -19,6 +19,8 @@ public:
     void set_float(const char *, float);
     void set_vec3(const char *, glm::vec3);
     void set_mat4(const char *, glm::mat4);
+
+    void print_status(void);
 };
 
 #endif

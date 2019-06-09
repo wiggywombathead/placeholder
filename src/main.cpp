@@ -392,6 +392,9 @@ void keyboard(GLFWwindow *w, int k, int sc, int action, int mods) {
     case GLFW_KEY_P:
         paused = !paused;
         break;
+    case GLFW_KEY_E:
+        lighting_shader.print_status();
+        break;
     /* CAMERA MOVEMENT */
     case GLFW_KEY_W:
         camera.move(step * camera.get_dir());
@@ -491,6 +494,7 @@ void display(void) {
     lighting_shader.set_vec3("light.diffuse", glm::vec3(.5));
     lighting_shader.set_vec3("light.specular", glm::vec3(1.));
     lighting_shader.set_float("light.cutoff", glm::cos(glm::radians(12.5f)));
+    lighting_shader.set_float("light.outer_cutoff", glm::cos(glm::radians(17.5f)));
 
     /* attenuation */
     lighting_shader.set_vec3("light.attenuation", glm::vec3(.032f, .09f, 1.f));

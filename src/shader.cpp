@@ -39,3 +39,7 @@ void Shader::set_mat4(const char *var, glm::mat4 mat) {
     GLint location = glGetUniformLocation(handle, var);
     glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(mat));
 }
+
+void Shader::print_status(void) {
+    print_shader_status(handle);
+}
