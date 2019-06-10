@@ -47,10 +47,10 @@ GLuint create_program(const char *vert, const char *frag, const char *geom) {
     bzero(source, SHADER_SIZE);
 
     GLuint vert_shader = create_shader(vert, source, GL_VERTEX_SHADER);
-    // printf("\nVERTEX\n%s\n", source);
+    //printf("\n-------------------- VERTEX --------------------\n%s\n", source);
     bzero(source, SHADER_SIZE);
     GLuint frag_shader = create_shader(frag, source, GL_FRAGMENT_SHADER);
-    // printf("\nFRAGMENT\n%s\n", source);
+    //printf("\n------------------- FRAGMENT -------------------\n%s\n", source);
     bzero(source, SHADER_SIZE);
 
     program = glCreateProgram();

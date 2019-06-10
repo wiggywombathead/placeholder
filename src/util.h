@@ -1,7 +1,7 @@
 #ifndef _UTIL_H
 #define _UTIL_H
 
-#define SHADER_SIZE 2048
+#define SHADER_SIZE (1 << 20)
 
 #include <GL/glew.h>
 

@@ -488,16 +488,25 @@ void display(void) {
 
     lighting_shader.set_vec3("view_pos", camera.get_pos());
 
-    lighting_shader.set_vec3("light.position", camera.get_pos());
-    lighting_shader.set_vec3("light.direction", camera.get_dir());
-    lighting_shader.set_vec3("light.ambient", glm::vec3(.2));
-    lighting_shader.set_vec3("light.diffuse", glm::vec3(.5));
-    lighting_shader.set_vec3("light.specular", glm::vec3(1.));
-    lighting_shader.set_float("light.cutoff", glm::cos(glm::radians(12.5f)));
-    lighting_shader.set_float("light.outer_cutoff", glm::cos(glm::radians(17.5f)));
+    lighting_shader.set_vec3("dlight.direction", glm::vec3(0,-1,0));
+    lighting_shader.set_vec3("dlight.ambient", glm::vec3(.2));
+    lighting_shader.set_vec3("dlight.diffuse", glm::vec3(.5));
+    lighting_shader.set_vec3("dlight.specular", glm::vec3(1.));
 
-    /* attenuation */
-    lighting_shader.set_vec3("light.attenuation", glm::vec3(.032f, .09f, 1.f));
+    lighting_shader.set_vec3("plight.position", light_pos);
+    lighting_shader.set_vec3("plight.ambient",  glm::vec3(1));
+    lighting_shader.set_vec3("plight.diffuse",  glm::vec3(1));
+    lighting_shader.set_vec3("plight.specular", glm::vec3(1));
+    lighting_shader.set_vec3("plight.attenuation", glm::vec3(.032, .09, 1));
+
+    lighting_shader.set_vec3("spotlight.position", camera.get_pos());
+    lighting_shader.set_vec3("spotlight.direction", camera.get_dir());
+    lighting_shader.set_vec3("spotlight.ambient",  glm::vec3(0,0,0));
+    lighting_shader.set_vec3("spotlight.diffuse",  glm::vec3(.75, .33, 0));
+    lighting_shader.set_vec3("spotlight.specular", glm::vec3(.75, .33, 0));
+    lighting_shader.set_vec3("spotlight.attenuation", glm::vec3(.032, .09, 1));
+    lighting_shader.set_float("spotlight.cutoff", glm::cos(glm::radians(12.5f)));
+    lighting_shader.set_float("spotlight.outer_cutoff", glm::cos(glm::radians(15.)));
 
     lighting_shader.set_int("material.diffuse", 0);
     lighting_shader.set_int("material.specular", 1);
