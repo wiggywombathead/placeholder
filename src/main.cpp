@@ -209,74 +209,90 @@ GLuint make_cube(void) {
     return vao;
 }
 
-int resolution = 20;
-float scale = 1;
-GLint make_earth() {
+/* assumes (n x n) grid of vertices */
+void gen_terrain(glm::vec3 *verts, size_t n) {
+    
+    float step = 2.f / (n-1);
+    float zpos = -1.f;
 
-    srand(time(0));
+    for (int j = 0; j < n; j++) {
+
+        float xpos = -1.f;
+
+        for (int i = 0; i < n; i++) {
+
+            int index = 2 * (j * n + i);
+
+            /* vertex position */
+            verts[index] = glm::vec3(
+                    xpos,
+                    .25 - .5 * ((float) rand()/RAND_MAX),
+                    zpos
+                );
+
+            xpos += step;
+
+        }
+        zpos += step;
+    }
+}
+
+struct Triangle {
+    glm::vec3 a, b, c;
+    Triangle(glm::vec3 a, glm::vec3 b, glm::vec3 c) {
+        this->a = a;
+        this->b = b;
+        this->c = c;
+    };
+};
+
+void gen_triangles(glm::vec3 *verts, size_t n, Triangle *tris) {
+
+    for (int j = 0; j < n-1; j++) {
+        for (int i = 0; i < 2 * (n-1); i++) {
+            int index = j * (n-1) + i;
+
+            if (index % 2 == 0) {
+                tris[index] = Triangle(
+                        verts[i],
+                        verts[i+n],
+                        verts[i+1]
+                    );
+            } else {
+                tris[index] = Triangle(
+                        verts[i],
+                        verts[i+n-1],
+                        verts[i+n]
+                    );
+            }
+        }
+    }
+}
+
+GLint make_terrain(size_t n) {
+
+    GLuint vao, vbo, ebo;
+
+    glm::vec3 verts[n * n];
+
+    // generate square vertex mesh
+    gen_terrain(verts, n);
+
+    // generate triangle mesh
+    Triangle *tris[2 * (n-1)*(n-1)];
+
+}
+
+#define TERRAIN_RES 20
+float scale = 1;
+GLint make_earth(size_t resolution) {
 
     GLuint vao, vbo, ebo;
 
     float gap = 2.f / (resolution - 1);
 
-    glm::vec3 landscape[2 * resolution * resolution];
-
-    float x_pos, z_pos;
-
-    z_pos = -1.f;
-    for (int j = 0; j < resolution; j++) {
-        x_pos = -1.f;
-        for (int i = 0; i < resolution; i++) {
-
-            int x = x_pos + i * gap;
-            int z = z_pos + j * gap;
-
-            int index = j * resolution + i;
-            int vertex = 2*index;
-            int normal = 2*index+1;
-
-            // vertex info
-            landscape[vertex] = glm::vec3(
-                    x_pos,
-                    .25 - .5 * ((float) rand() / RAND_MAX),
-                    z_pos
-                );
-
-            // normal info
-            if (i == resolution-1) 
-                landscape[normal] = landscape[normal - 2];
-            else if (j == resolution-1)
-                landscape[normal] = landscape[normal - 2 * resolution];
-            else
-                landscape[normal] = glm::normalize(
-                        glm::cross(
-                            landscape[vertex + 2 * resolution] - landscape[vertex],
-                            landscape[vertex + 2] - landscape[vertex + 2 * resolution]
-                        )
-                    );
-
-            x_pos += gap;
-        }
-        z_pos += gap;
-    }
-
-    /*
-    float landscape[3 * resolution * resolution];
-    for (int z = 0; z < resolution; z++) {
-        x_pos = -1.f;
-        for (int x = 0; x < resolution; x++) {
-            int index = z * resolution + x;
-            landscape[3*index] = x_pos + x * gap;
-            landscape[(3*index) + 1] = .25 - .5 * ((float) rand() / RAND_MAX);
-            landscape[(3*index) + 2] = z_pos + z * gap;
-
-            x_pos += gap;
-        }
-
-        z_pos += gap;
-    }
-    */
-
+    glm::vec3 verts[2*resolution*resolution];
+    
     /* points per triangle * triangles per square * total squares */
     GLuint entries = 3 * 2 * (resolution-1) * (resolution-1);
     GLuint elems[entries];
@@ -300,7 +316,7 @@ GLint make_earth() {
 
     glGenBuffers(1, &vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(landscape), landscape, GL_DYNAMIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(verts), verts, GL_DYNAMIC_DRAW);
 
     glGenBuffers(1, &ebo);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
@@ -319,8 +335,8 @@ GLint make_earth() {
 
 void draw_earth(void) {
     glBindVertexArray(earth_vao);
-    glDrawElements(GL_TRIANGLES, 3*2*(resolution-1)*(resolution-1), GL_UNSIGNED_INT, 0);
-    // glDrawArrays(GL_POINTS, 0, resolution * 3);
+    glDrawElements(GL_TRIANGLES, 3*2*(TERRAIN_RES-1)*(TERRAIN_RES-1), GL_UNSIGNED_INT, 0);
+    // glDrawArrays(GL_POINTS, 0, TERRAIN_RES * 3);
     glBindVertexArray(0);
 }
 
@@ -546,6 +562,8 @@ void display(void) {
 
 void init(void) {
 
+    srand(time(NULL));
+
     /* OpenGL settings */
     glEnable(GL_PROGRAM_POINT_SIZE);
     glEnable(GL_MULTISAMPLE);
@@ -575,7 +593,7 @@ void init(void) {
     /* set up objects */
     cube_vao = make_cube();
     tetra_vao = make_tetra();
-    earth_vao = make_earth();
+    // earth_vao = make_earth();
 
     container_diff = make_texture("tex/container_diff.png");
     container_spec = make_texture("tex/container_spec.png");
