@@ -239,6 +239,7 @@ void gen_terrain(glm::vec3 *verts, size_t n) {
 
 struct Triangle {
     glm::vec3 a, b, c;
+    Triangle() { };
     Triangle(glm::vec3 a, glm::vec3 b, glm::vec3 c) {
         this->a = a;
         this->b = b;
@@ -246,40 +247,71 @@ struct Triangle {
     };
 };
 
-void gen_triangles(glm::vec3 *verts, size_t n, Triangle *tris) {
+void gen_triangles(Triangle *tris, size_t n) {
 
-    for (int j = 0; j < n-1; j++) {
+    float zpos = -1.f;
+    float step = 2.f / ((float) (n-1));
+
+    for (int j = 0; j < (n-1); j++) {
+        float xpos = -1.f;
+
         for (int i = 0; i < 2 * (n-1); i++) {
-            int index = j * (n-1) + i;
+
+            int index = j * 2 * (n-1) + i;
 
             if (index % 2 == 0) {
                 tris[index] = Triangle(
-                        verts[i],
-                        verts[i+n],
-                        verts[i+1]
+                        glm::vec3(xpos, 0, zpos),
+                        glm::vec3(xpos, 0, zpos + step),
+                        glm::vec3(xpos + step, 0, zpos)
                     );
             } else {
+                xpos += step;
+
                 tris[index] = Triangle(
-                        verts[i],
-                        verts[i+n-1],
-                        verts[i+n]
+                        glm::vec3(xpos, 0, zpos),
+                        glm::vec3(xpos - step, 0, zpos + step),
+                        glm::vec3(xpos, 0, zpos + step)
                     );
             }
+
         }
+
+        zpos += step;
     }
+
+}
+
+void gen_verts(glm::vec3 *verts, Triangle *triangles, size_t n) {
+
+    size_t length = 2 * (n-1) * (n-1);
+    for (size_t i = 0; i < length; i++) {
+        int ind = 3 * i;
+        verts[ind] = triangles[i].a;
+        verts[ind+1] = triangles[i].b;
+        verts[ind+2] = triangles[i].c;
+
+        printf("Triangle %d\n", i);
+        printf("\t1: [%.2f, %.2f, %.2f]\n", verts[ind].x, verts[ind].y, verts[ind].z);
+        printf("\t2: [%.2f, %.2f, %.2f]\n", verts[ind+1].x, verts[ind+1].y, verts[ind+1].z);
+        printf("\t3: [%.2f, %.2f, %.2f]\n", verts[ind+2].x, verts[ind+2].y, verts[ind+2].z);
+    }
+
 }
 
 GLint make_terrain(size_t n) {
 
     GLuint vao, vbo, ebo;
 
-    glm::vec3 verts[n * n];
-
-    // generate square vertex mesh
-    gen_terrain(verts, n);
+    size_t t = 2 * (n-1) * (n-1);
 
     // generate triangle mesh
-    Triangle *tris[2 * (n-1)*(n-1)];
+    Triangle triangles[t];
+    gen_triangles(triangles, n);
+
+    // convert triangles into vertex buffer (with normals)
+    glm::vec3 verts[3 * t];
+    gen_verts(verts, triangles, n);
 
 }
 
@@ -589,6 +621,8 @@ void init(void) {
     // simple_shader = Shader("shaders/simple.vert", "shaders/simple.frag");
     lighting_shader = Shader("shaders/lighting.vert", "shaders/lighting.frag");
     lamp_shader = Shader("shaders/lamp.vert", "shaders/lamp.frag");
+
+    make_terrain(3);
 
     /* set up objects */
     cube_vao = make_cube();
