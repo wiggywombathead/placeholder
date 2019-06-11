@@ -1,11 +1,14 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
+
 #include <ctime>
+#include <iostream>
+#include <math.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/string_cast.hpp>
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -64,6 +67,7 @@ Shader simple_shader;
 GLuint tetra_vao;
 GLuint cube_vao;
 GLuint earth_vao;
+GLuint terrain_vao;
 
 GLuint container_diff, container_spec;
 
@@ -292,10 +296,10 @@ void gen_verts(glm::vec3 *verts, Triangle *triangles, size_t n) {
 
     size_t length = 2 * (n-1) * (n-1);
     for (size_t i = 0; i < length; i++) {
-        int ind = 3 * i;
+        int ind = 6 * i;
         verts[ind] = triangles[i].a;
-        verts[ind+1] = triangles[i].b;
-        verts[ind+2] = triangles[i].c;
+        verts[ind+2] = triangles[i].b;
+        verts[ind+4] = triangles[i].c;
 
         /**
          * A    C
@@ -315,16 +319,17 @@ void gen_verts(glm::vec3 *verts, Triangle *triangles, size_t n) {
         glm::vec3 e2 = triangles[i].c - triangles[i].b;
 
         glm::vec3 norm = glm::cross(e1, e2);
-        verts[ind+3] = verts[ind+4] = verts[ind+5] = norm;
+        verts[ind+1] = verts[ind+3] = verts[ind+5] = (norm);
+    }
 
+    for (size_t i = 0; i < length; i++) {
+        int ind = 6 * i;
         printf("Triangle %d\n", i);
         printf("\t1: [%.2f, %.2f, %.2f]\n", verts[ind].x, verts[ind].y, verts[ind].z);
         printf("\t2: [%.2f, %.2f, %.2f]\n", verts[ind+1].x, verts[ind+1].y, verts[ind+1].z);
         printf("\t3: [%.2f, %.2f, %.2f]\n", verts[ind+2].x, verts[ind+2].y, verts[ind+2].z);
         printf("\tN: [%.2f, %.2f, %.2f]\n", verts[ind+3].x, verts[ind+3].y, verts[ind+3].z);
-
     }
-
 }
 
 GLint make_terrain(size_t n) {
@@ -341,6 +346,36 @@ GLint make_terrain(size_t n) {
     glm::vec3 verts[6 * t];
     gen_verts(verts, triangles, n);
 
+    for (int i = 0; i < 6*t; i++)
+        std::cout << glm::to_string(verts[i]) << std::endl;
+
+    /**
+     * [ vert, norm ]
+     * [ Vx Vy Vz Nx Ny Nz ]
+     */
+
+    glGenVertexArrays(1, &vao);
+    glBindVertexArray(vao);
+
+    glGenBuffers(1, &vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(verts), verts, GL_DYNAMIC_DRAW);
+
+    /* position */
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 2*sizeof(glm::vec3), 0);
+    glEnableVertexAttribArray(0);
+
+    /* normal */
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 2*sizeof(glm::vec3), (void *) (sizeof(glm::vec3)));
+    glEnableVertexAttribArray(1);
+
+    return vao;
+}
+
+void draw_terrain(size_t n) {
+    glBindVertexArray(terrain_vao);
+    glDrawArrays(GL_TRIANGLES, 0, 12*(n-1)*(n-1));
+    glBindVertexArray(0);
 }
 
 #define TERRAIN_RES 20
@@ -448,8 +483,7 @@ void cursor(GLFWwindow *w, double x, double y) {
     camera.change_yaw(dx);
 }
 
-bool tex1 = true;
-glm::vec3 light_pos(0, 0, 0);
+glm::vec3 light_pos(0, 2, 0);
 glm::vec3 light_centre(0, 0, 3);
 glm::vec3 light_col(1.f);
 void keyboard(GLFWwindow *w, int k, int sc, int action, int mods) {
@@ -518,9 +552,6 @@ void keyboard(GLFWwindow *w, int k, int sc, int action, int mods) {
             glShadeModel(GL_SMOOTH);
         flat_shading = !flat_shading;
         break;
-    case GLFW_KEY_H:
-        tex1 = !tex1; 
-        printf("Drawing %s texture\n", tex1 == true ? "1st" : "2nd");
     };
 
 }
@@ -533,11 +564,11 @@ void update(void) {
 
     t_now = glfwGetTime();
 
-    float rads = ticks * M_PI / 180.f;
+    // float rads = ticks * M_PI / 180.f;
 
-    float z = 2*cos(rads);
+    // float z = 2*cos(rads);
     // float x = 2*sin(rads);
-    light_pos = glm::vec3(light_centre.x, 0, light_centre.z + z);
+    // light_pos = glm::vec3(light_centre.x, 0, light_centre.z + z);
 
     ticks++;
 }
@@ -588,7 +619,7 @@ void display(void) {
     lighting_shader.set_int("material.specular", 1);
     lighting_shader.set_float("material.shininess", 16.f);
 
-    proj = glm::perspective(glm::radians(camera.get_fov()), (float) WIN_W / WIN_H, 1.0f, 50.0f);
+    proj = glm::perspective(glm::radians(camera.get_fov()), (float) WIN_W / WIN_H, .1f, 50.0f);
     lighting_shader.set_mat4("Proj", proj);
 
     view = camera.look();
@@ -602,7 +633,9 @@ void display(void) {
 
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, container_spec);
-    draw_cube();
+    // draw_cube();
+
+    draw_terrain(TERRAIN_RES);
 
     lamp_shader.use();
 
@@ -650,7 +683,7 @@ void init(void) {
     lighting_shader = Shader("shaders/lighting.vert", "shaders/lighting.frag");
     lamp_shader = Shader("shaders/lamp.vert", "shaders/lamp.frag");
 
-    make_terrain(2);
+    terrain_vao = make_terrain(TERRAIN_RES);
 
     /* set up objects */
     cube_vao = make_cube();
