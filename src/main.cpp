@@ -265,11 +265,13 @@ void gen_triangles(Triangle *tris, size_t n) {
 
             int index = j * 2 * (n-1) + i;
 
+            float height = rand() / RAND_MAX;
+
             if (index % 2 == 0) {
 
                 // top-left, bottom-left, top-right of square
                 tris[index] = Triangle(
-                        glm::vec3(xpos, 0, zpos),
+                        glm::vec3(xpos, 1, zpos),
                         glm::vec3(xpos, 0, zpos + step),
                         glm::vec3(xpos + step, 0, zpos)
                     );
@@ -280,7 +282,7 @@ void gen_triangles(Triangle *tris, size_t n) {
                 // top-right, bottom-left, bottom-right of square
                 tris[index] = Triangle(
                         glm::vec3(xpos, 0, zpos),
-                        glm::vec3(xpos - step, 0, zpos + step),
+                        glm::vec3(xpos - step, 1, zpos + step),
                         glm::vec3(xpos, 0, zpos + step)
                     );
             }
@@ -292,16 +294,22 @@ void gen_triangles(Triangle *tris, size_t n) {
 
 }
 
+/* populate vertex and normal data, given generated triangles */
 void gen_verts(glm::vec3 *verts, Triangle *triangles, size_t n) {
 
     size_t length = 2 * (n-1) * (n-1);
     for (size_t i = 0; i < length; i++) {
+
         int ind = 6 * i;
+
+        // place vertex data at even offset
         verts[ind] = triangles[i].a;
         verts[ind+2] = triangles[i].b;
         verts[ind+4] = triangles[i].c;
 
         /**
+         * triangles specified in ABC, CBD order
+         *
          * A    C
          * O----O
          * |   /|
@@ -317,21 +325,15 @@ void gen_verts(glm::vec3 *verts, Triangle *triangles, size_t n) {
          */
         glm::vec3 e1 = triangles[i].b - triangles[i].a;
         glm::vec3 e2 = triangles[i].c - triangles[i].b;
-
         glm::vec3 norm = glm::cross(e1, e2);
+
+        // place normal directly after corresponding normal
         verts[ind+1] = verts[ind+3] = verts[ind+5] = (norm);
     }
 
-    for (size_t i = 0; i < length; i++) {
-        int ind = 6 * i;
-        printf("Triangle %d\n", i);
-        printf("\t1: [%.2f, %.2f, %.2f]\n", verts[ind].x, verts[ind].y, verts[ind].z);
-        printf("\t2: [%.2f, %.2f, %.2f]\n", verts[ind+1].x, verts[ind+1].y, verts[ind+1].z);
-        printf("\t3: [%.2f, %.2f, %.2f]\n", verts[ind+2].x, verts[ind+2].y, verts[ind+2].z);
-        printf("\tN: [%.2f, %.2f, %.2f]\n", verts[ind+3].x, verts[ind+3].y, verts[ind+3].z);
-    }
 }
 
+/* pass vertex data to GPU */
 GLint make_terrain(size_t n) {
 
     GLuint vao, vbo, ebo;
@@ -345,14 +347,6 @@ GLint make_terrain(size_t n) {
     // convert triangles into vertex buffer (with normals)
     glm::vec3 verts[6 * t];
     gen_verts(verts, triangles, n);
-
-    for (int i = 0; i < 6*t; i++)
-        std::cout << glm::to_string(verts[i]) << std::endl;
-
-    /**
-     * [ vert, norm ]
-     * [ Vx Vy Vz Nx Ny Nz ]
-     */
 
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
@@ -374,11 +368,11 @@ GLint make_terrain(size_t n) {
 
 void draw_terrain(size_t n) {
     glBindVertexArray(terrain_vao);
-    glDrawArrays(GL_TRIANGLES, 0, 12*(n-1)*(n-1));
+    glDrawArrays(GL_TRIANGLES, 0, 6*(n-1)*(n-1));
     glBindVertexArray(0);
 }
 
-#define TERRAIN_RES 20
+#define TERRAIN_RES 3
 float scale = 1;
 GLint make_earth(size_t resolution) {
 
