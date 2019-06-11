@@ -251,6 +251,8 @@ struct Triangle {
     };
 };
 
+#define TERRAIN_RES 7
+
 /* generate triangle mesh of size 2(n-1)(n-1) */
 void gen_triangles(Triangle *tris, size_t n) {
 
@@ -265,27 +267,85 @@ void gen_triangles(Triangle *tris, size_t n) {
 
             int index = j * 2 * (n-1) + i;
 
-            float height = rand() / RAND_MAX;
+            if (j == 0) {
 
-            if (index % 2 == 0) {
+                if (i == 0) {
 
-                // top-left, bottom-left, top-right of square
-                tris[index] = Triangle(
-                        glm::vec3(xpos, 1, zpos),
-                        glm::vec3(xpos, 0, zpos + step),
-                        glm::vec3(xpos + step, 0, zpos)
-                    );
+                    float h1 = rand() / (float) RAND_MAX;
+                    float h2 = rand() / (float) RAND_MAX;
+                    float h3 = rand() / (float) RAND_MAX;
+
+                    // Set[a] Set[b] Set[c]
+                    tris[index] = Triangle(
+                            glm::vec3(xpos, h1, zpos),
+                            glm::vec3(xpos, h2, zpos + step),
+                            glm::vec3(xpos + step, h3, zpos)
+                            );
+
+                } else {
+
+                    float h = rand() / (float) RAND_MAX;
+                    int prev = index - 1;
+
+                    if (i % 2 == 0) {
+
+                        // Read[a] Read[c] Set[c]
+                        tris[index] = Triangle(
+                                glm::vec3(xpos, tris[prev].a.y, zpos),
+                                glm::vec3(xpos, tris[prev].c.y, zpos + step),
+                                glm::vec3(xpos + step, h, zpos)
+                                );
+
+                    } else {
+
+                        // Read[c] Read[b] Set[c]
+                        tris[index] = Triangle(
+                                glm::vec3(xpos + step, tris[prev].c.y, zpos),
+                                glm::vec3(xpos, tris[prev].b.y, zpos + step),
+                                glm::vec3(xpos + step, h, zpos)
+                                );
+
+                    }
+                }
 
             } else {
-                xpos += step;
 
-                // top-right, bottom-left, bottom-right of square
-                tris[index] = Triangle(
-                        glm::vec3(xpos, 0, zpos),
-                        glm::vec3(xpos - step, 1, zpos + step),
-                        glm::vec3(xpos, 0, zpos + step)
-                    );
+                int prev = index - 1;
+                int prev_row = index - (2 * (n-1)) + 1;
+                float h = rand() / (float) RAND_MAX;
+
+                if (i == 0) {
+
+                    // RRead[b] Set[b] RRead[c]
+                    tris[index] = Triangle(
+                            glm::vec3(xpos, tris[prev_row].b.y, zpos),
+                            glm::vec3(xpos, h, zpos + step),
+                            glm::vec3(xpos + step, tris[prev_row].c.y, zpos)
+                            );
+
+                } else if (i % 2 == 0) {
+
+                    // Read[c] Read[b] RRead[b]
+                    tris[index] = Triangle(
+                            glm::vec3(xpos, tris[prev].c.y, zpos),
+                            glm::vec3(xpos, tris[prev].b.y, zpos + step),
+                            glm::vec3(xpos + step, tris[prev_row].b.y, zpos)
+                            );
+
+                } else {
+
+                    // Read[c] Read[b] Set[c]
+                    tris[index] = Triangle(
+                            glm::vec3(xpos + step, tris[prev].c.y, zpos),
+                            glm::vec3(xpos, tris[prev].b.y, zpos + step),
+                            glm::vec3(xpos + step, h, zpos)
+                            );
+                }
+
             }
+
+            if (i % 2 == 0)
+                xpos += step;
 
         }
 
@@ -372,7 +432,6 @@ void draw_terrain(size_t n) {
     glBindVertexArray(0);
 }
 
-#define TERRAIN_RES 3
 float scale = 1;
 GLint make_earth(size_t resolution) {
 
@@ -620,6 +679,7 @@ void display(void) {
     lighting_shader.set_mat4("View", view);
 
     model = glm::mat4(1.f);
+    model = glm::scale(model, glm::vec3(2,1,2));
     lighting_shader.set_mat4("Model", model);
 
     glActiveTexture(GL_TEXTURE0);
@@ -661,9 +721,11 @@ void init(void) {
     // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-    // glEnable(GL_CULL_FACE);
-    // glCullFace(GL_BACK);
-    // glFrontFace(GL_CCW);
+    /*
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
+    glFrontFace(GL_CCW);
+    */
 
     /* glfw settings */
     glfwSetKeyCallback(window, keyboard);
